@@ -25,6 +25,8 @@ public final class GlassProvider extends ContentProvider {
             prefs.edit().putLong("connected_at",System.currentTimeMillis()).apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
+            result.putBoolean("debug_logs",prefs.getBoolean("debug_logs",true));
+            DebugLog.event(getContext(),"SETTINGS_READ","caller="+Binder.getCallingUid()+" style="+style+" icons="+prefs.getBoolean("icons",false)+" blur="+prefs.getBoolean("blur",false));
             result.putBoolean("root_wallpaper",prefs.getBoolean("root_wallpaper",false));
             try(var stream=getContext().getAssets().open("shaders/qwea0_lens.agsl")){result.putString("shader",new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(IOException e){result.putString("error",e.toString());}
             result.putBoolean("icons", prefs.getBoolean("icons", false));
@@ -32,12 +34,16 @@ public final class GlassProvider extends ContentProvider {
             result.putInt("radius", GlassConfig.radius(prefs.getInt("radius", GlassConfig.DEFAULT_RADIUS_DP)));
             try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list(GlassConfig.assetDirectory(style))) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }
             catch (IOException e) { result.putString("error", e.toString()); }
+        } else if ("log".equals(method)) {
+            if(extras!=null)DebugLog.event(getContext(),"LAUNCHER/"+DiagnosticLog.clean(extras.getString("event"),32),extras.getString("message"));
         } else if ("diagnostics".equals(method)) {
             String value=extras==null?null:extras.getString("bindings");
+            if(value!=null)DebugLog.event(getContext(),"BINDINGS",value);
             if(value!=null)prefs.edit().putString("bindings",value.substring(0,Math.min(600,value.length()))).apply();
             getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
         } else if ("report".equals(method)) {
             String status = extras == null ? null : extras.getString("status");
+            if(status!=null)DebugLog.event(getContext(),"STATUS",status);
             if (status != null) prefs.edit().putString("status", status.substring(0,Math.min(600,status.length()))).apply();
             getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
         } else throw new IllegalArgumentException("Unknown provider method");

@@ -9,6 +9,20 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Diagnostic test build (0.3.1)
+
+[Download the logging test build](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.1-test). It updates the same add-on package and keeps the 0.3.0 glass behavior.
+
+Diagnostic logging is on by default in this test build. To report a problem:
+
+1. Open devarix Glass and leave **Diagnostic logging** on.
+2. Tap **Clear logs**, then **Restart launcher**. Open home and the app drawer to reproduce the issue.
+3. Return to the app and tap **Export logs (.txt)**. Choose a save location and attach that file to the bug report/chat. **Copy logs** is available if your ROM has no document picker.
+
+The report includes app/device/launcher versions, settings, hook installation and errors, sampled icon package names and tag class names, asset decode results, mapping counts, render/capture status and restart results. It never collects wallpaper pixels, arbitrary Intent contents, system logcat, account identifiers or a full installed-app inventory. It stays in private app storage (two rotating 64 KiB segments) until you export or copy it. Turning logging off stops new file entries; **Clear logs** removes retained entries. A bounded background transport queue may discard messages during bursts. Log collection/export itself does not require root; launcher restart and LSPosed have their usual requirements.
+
+If the add-on never hooks into the launcher, its exported report will lack launcher events. In that case include the module error from LSPosed's own logs too. Logging is best-effort and not a crash tombstone collector.
+
 ## Preview before activating
 
 Install the APK and open **devarix Glass → Preview Liquid Glass**. Drag an icon over the striped background. This screen runs the actual AGSL shader in the app; it needs Android 13+ and hardware acceleration, but no root or LSPosed activation. A driver failure is reported and the static fallback is identified.

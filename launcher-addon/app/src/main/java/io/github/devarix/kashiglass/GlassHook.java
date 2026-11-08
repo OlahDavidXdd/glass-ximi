@@ -19,6 +19,18 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public final class GlassHook implements IXposedHookLoadPackage {
     private static Handler MAIN;
+    private static volatile boolean debugEnabled=true;
+    private static final ExecutorService LOG_IO=new ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(128),new ThreadPoolExecutor.DiscardPolicy());
+    private static final ArrayDeque<String[]> EARLY_LOGS=new ArrayDeque<>();
+    private static final Set<String> SAMPLES=new HashSet<>();
+    private static void debug(String event,String message){
+        if(!debugEnabled)return;
+        if(context==null){synchronized(EARLY_LOGS){if(EARLY_LOGS.size()==64)EARLY_LOGS.removeFirst();EARLY_LOGS.addLast(new String[]{event,message});}XposedBridge.log("devarix Glass "+event+": "+message);return;}
+        LOG_IO.execute(()->{try{Bundle data=new Bundle();data.putString("event",event);data.putString("message",DiagnosticLog.clean(message,2000));context.getContentResolver().call(GlassProvider.SETTINGS,"log",null,data);}catch(Throwable e){XposedBridge.log("devarix Glass log transport: "+e.getClass().getSimpleName());}});
+    }
+    private static void error(String event,Throwable error){debug(event,android.util.Log.getStackTraceString(error));XposedBridge.log("devarix Glass "+event+": "+error);}
+    private static void sample(String key,String message){if(debugEnabled&&SAMPLES.size()<60&&SAMPLES.add(key))debug("ICON_SAMPLE",message);}
+
     private static final ExecutorService IO=Executors.newSingleThreadExecutor();
     private static final Map<View,State> STATES=new WeakHashMap<>();
     private static final Map<String,ArrayList<WeakReference<View>>> PENDING=new HashMap<>();
@@ -45,11 +57,13 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam param) throws Throwable {
         if(!GlassConfig.LAUNCHER.equals(param.packageName)||!GlassConfig.LAUNCHER.equals(param.processName))return;
-        if(Looper.getMainLooper()==null){XposedBridge.log("devarix Glass: no main looper; hooks skipped");return;}
+        debug("HOOK_START","build="+BuildConfig.VERSION_NAME+" process="+param.processName);
+        if(Looper.getMainLooper()==null){debug("HOOK_ABORT","No main looper; hooks skipped");return;}
         MAIN=new Handler(Looper.getMainLooper());
         XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
-            @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];initialize();}}
+            @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];try{initialize();}catch(Throwable e){error("INITIALIZE_ERROR",e);}}}
         });
+        try{
         XposedHelpers.findAndHookMethod(ImageView.class,"setImageDrawable",Drawable.class,new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!(p.thisObject instanceof ImageView)||!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
@@ -60,6 +74,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
             @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()&&isIcon(p.thisObject))MAIN.post(()->apply((View)p.thisObject));}
         });
         Class<?> shortcutClass=XposedHelpers.findClassIfExists("com.miui.home.launcher.ShortcutIcon",param.classLoader);
+        debug("HOOK_TARGET","ShortcutIcon found="+(shortcutClass!=null));
         if(shortcutClass!=null){
             XposedHelpers.findAndHookMethod(shortcutClass,"setIconDrawable",Drawable.class,Bitmap.class,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
@@ -74,6 +89,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
             });
         }
         Class<?> iconClass=XposedHelpers.findClassIfExists("com.miui.home.icon.LauncherIconImageView",param.classLoader);
+        debug("HOOK_TARGET","LauncherIconImageView found="+(iconClass!=null));
         if(iconClass!=null)XposedBridge.hookAllConstructors(iconClass,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){
             View view=(View)p.thisObject;if(XposedHelpers.getAdditionalInstanceField(view,"devarix_layout")!=null)return;
             XposedHelpers.setAdditionalInstanceField(view,"devarix_layout",true);
@@ -83,6 +99,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookMethod(Activity.class,"onResume",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){Activity activity=(Activity)p.thisObject;lastActivity=new WeakReference<>(activity);MAIN.post(()->{if(context!=null)reload();if(enabled)scan(activity.getWindow().getDecorView());});}});
         Class<?> fragment=XposedHelpers.findClassIfExists("com.miui.home.settings.IconCustomizeFragment",param.classLoader);
         if(fragment!=null)for(String method:new String[]{"onCreate","onCreatePreferences","onResume"})XposedBridge.hookAllMethods(fragment,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){injectOption(p.thisObject,param.classLoader);}});
+        debug("HOOK_READY","Icon, activity and wallpaper hooks installed");
+        }catch(Throwable e){error("HOOK_INSTALL_ERROR",e);}
     }
     private static Drawable getIconDrawable(View view){return view instanceof ImageView?((ImageView)view).getDrawable():(Drawable)call(view,"getIconDrawable");}
     private static void setIconDrawable(View view,Drawable drawable){
@@ -107,7 +125,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         else if(enabled&&mapped==0)message+=" No app mappings resolved. Open the app drawer and check again.";
         if(message.equals(lastBindings))return;lastBindings=message;
         final String value=message;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("bindings",value);context.getContentResolver().call(GlassProvider.SETTINGS,"diagnostics",null,data);}catch(Throwable e){XposedBridge.log("devarix Glass diagnostics: "+e);}});
+        IO.execute(()->{try{Bundle data=new Bundle();data.putString("bindings",value);context.getContentResolver().call(GlassProvider.SETTINGS,"diagnostics",null,data);}catch(Throwable e){error("DIAGNOSTICS_ERROR",e);}});
     }
     private static void walk(View view){
         if(!enabled)return;
@@ -124,8 +142,11 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static Drawable makeDrawable(View view,Bitmap bitmap){return "liquid".equals(style)?new LiquidGlassDrawable(view,bitmap,wallpaper,blur,radius,GlassHook::report):new BitmapDrawable(view.getResources(),bitmap);}
     private static void refreshLiquid(){if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
     private static void initialize(){
+        synchronized(EARLY_LOGS){while(!EARLY_LOGS.isEmpty()){String[] entry=EARLY_LOGS.removeFirst();debug(entry[0],entry[1]);}}
+        debug("ATTACH","Launcher context attached; SDK="+Build.VERSION.SDK_INT);
+
         wallpaper=new WallpaperBackdrop(context,()->MAIN.post(GlassHook::refreshLiquid),GlassHook::report);
-        try{context.getContentResolver().registerContentObserver(GlassProvider.SETTINGS,false,new ContentObserver(MAIN){@Override public void onChange(boolean selfChange){reload();}});}catch(Throwable e){XposedBridge.log("devarix Glass: "+e);}
+        try{context.getContentResolver().registerContentObserver(GlassProvider.SETTINGS,false,new ContentObserver(MAIN){@Override public void onChange(boolean selfChange){reload();}});}catch(Throwable e){error("OBSERVER_ERROR",e);}
         reload();
     }
     private static void reload(){
@@ -133,6 +154,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
             try{
                 Bundle config=context.getContentResolver().call(GlassProvider.SETTINGS,"settings",null,null);
                 if(config==null)throw new IllegalStateException("Provider unavailable");
+                debugEnabled=config.getBoolean("debug_logs",true);
+                debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur");int nextRadius=GlassConfig.radius(config.getInt("radius",24));
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
@@ -146,7 +169,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}
                     Activity activity=lastActivity.get();if(enabled&&activity!=null)scan(activity.getWindow().getDecorView());
                 });
-            }catch(Throwable e){MAIN.post(()->{enabled=false;blur=false;for(View v:new ArrayList<>(STATES.keySet()))if(v!=null)apply(v);});XposedBridge.log("devarix Glass config: "+e);}
+            }catch(Throwable e){MAIN.post(()->{enabled=false;blur=false;for(View v:new ArrayList<>(STATES.keySet()))if(v!=null)apply(v);});error("CONFIG_ERROR",e);}
         });
     }
     private static String resolve(View view){
@@ -175,9 +198,14 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static Object call(Object object,String method){try{return XposedHelpers.callMethod(object,method);}catch(Throwable ignored){return null;}}
     private static Object field(Object object,String name){try{return XposedHelpers.getObjectField(object,name);}catch(Throwable ignored){return null;}}
     private static void apply(View view){
+        try{applyInternal(view);}catch(Throwable e){error("ICON_APPLY_ERROR",e);}
+    }
+    private static void applyInternal(View view){
         if(Looper.myLooper()!=Looper.getMainLooper()){MAIN.post(()->apply(view));return;}
         if(context==null||INTERNAL.get())return;
         State state=state(view);String pkg=resolve(view);
+        Object tag=view.getTag();
+        sample(view.getClass().getName()+":"+pkg+":"+(tag==null?"null":tag.getClass().getName()),"view="+view.getClass().getName()+" mapping="+pkg+" tagType="+(tag==null?"null":tag.getClass().getName()));
         if(!enabled||pkg==null){restore(view,state);return;}
         Bitmap bitmap=ICONS.get(assetKey(pkg));
         if(bitmap==null){if(state.applied&&!pkg.equals(state.packageName))restore(view,state);load(pkg,view);return;}
@@ -185,6 +213,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
             if(!state.applied)state.original=getIconDrawable(view);
             INTERNAL.set(true);try{setIconDrawable(view,makeDrawable(view,bitmap));}finally{INTERNAL.set(false);}
             state.applied=true;state.packageName=pkg;
+            sample("applied:"+pkg,"Applied "+style+" mapping="+pkg+" view="+view.getClass().getName());
         }
         if(!state.listener){state.listener=true;view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
             public void onViewAttachedToWindow(View v){MAIN.post(()->apply(v));}
@@ -204,7 +233,9 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 if(descriptor==null)throw new IllegalStateException("Missing asset");
                 BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=2;
                 try(var stream=descriptor.createInputStream()){image=BitmapFactory.decodeStream(stream,null,options);}
-            }catch(Throwable e){XposedBridge.log("devarix Glass asset "+pkg+": "+e);}
+            }catch(Throwable e){error("ASSET_ERROR "+pkg,e);}
+            if(image!=null)debug("ASSET_OK",requestedStyle+" "+pkg+" "+image.getWidth()+"x"+image.getHeight());
+            else debug("ASSET_FAILED",requestedStyle+" "+pkg);
             Bitmap result=image;
             MAIN.post(()->{ArrayList<WeakReference<View>> views=PENDING.remove(key);if(result!=null)ICONS.put(key,result);else FAILED.add(key);if(views!=null)for(var ref:views){View v=ref.get();if(v!=null)apply(v);}diagnose();});
         });
@@ -222,6 +253,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
             state.blurred=true;state.lastRadius=pixels;state.lastWidth=view.getWidth();state.lastHeight=view.getHeight();
             report("liquid".equals(style)?"Liquid Glass is using its static fallback while wallpaper capture is unavailable: "+wallpaper.failure():"Xiaomi native blur calls succeeded for Frosted Glass; physical-device rendering still needs verification.");
         }catch(Throwable e){
+            error("NATIVE_BLUR_ERROR",e);
             try{invoke(view,"setMiBackgroundBlurMode",0);invoke(view,"setMiViewBlurMode",0);}catch(Throwable ignored){}
             view.setOutlineProvider(state.outline);view.setClipToOutline(state.clip);state.blurred=false;state.blurFailed=true;
             report("Native blur unavailable: "+e.getClass().getSimpleName()+". Icons still work. No simulated wallpaper blur is applied.");
@@ -239,7 +271,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static void report(String message){
         if(context==null||message.equals(lastStatus))return;lastStatus=message;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("status",message);context.getContentResolver().call(GlassProvider.SETTINGS,"report",null,data);}catch(Throwable e){XposedBridge.log("devarix Glass status: "+e);}});
+        IO.execute(()->{try{Bundle data=new Bundle();data.putString("status",message);context.getContentResolver().call(GlassProvider.SETTINGS,"report",null,data);}catch(Throwable e){error("STATUS_ERROR",e);}});
     }
     private static void injectOption(Object fragment,ClassLoader loader){
         try{
@@ -253,6 +285,6 @@ public final class GlassHook implements IXposedHookLoadPackage {
             XposedHelpers.callMethod(pref,"setSummary","Liquid Glass (QWEA0) or Frosted Glass");
             XposedHelpers.callMethod(pref,"setIntent",new Intent().setClassName(GlassConfig.APP,GlassConfig.APP+".SettingsActivity"));
             XposedHelpers.callMethod(screen,"addPreference",pref);
-        }catch(Throwable e){XposedBridge.log("devarix Glass setting entry: "+e);}
+        }catch(Throwable e){error("SETTINGS_ENTRY_ERROR",e);}
     }
 }

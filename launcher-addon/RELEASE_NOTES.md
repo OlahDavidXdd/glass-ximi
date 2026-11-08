@@ -1,25 +1,22 @@
 Developer: **devarix**
 
-## 0.3.0 — Icon binding fix and launcher restart
+## 0.3.1 diagnostic test build
 
-- Added support for Kashi’s main **ShortcutIcon TextView** drawing path. 0.2.0 only hooked LauncherIconImageView, which can leave the module connected while home/app-drawer icons stay stock.
-- Installs the live Drawable directly in the compound-icon slot to avoid launcher rounding rasterizing the QWEA0 shader; retains the existing ImageView path.
-- Added **Enable Liquid Glass**, clear LSPosed activation steps, **Restart launcher**, and **Check launcher connection**.
-- Status now reports supported icon views, resolved mappings and replaced drawables. Settings reload when returning to the launcher after unlocking.
-- Restart requests root only on tap, targets `com.miui.home` for the current user, times out after 25 seconds, and does not clear launcher data.
-- Keeps both 700-icon sets, the upstream QWEA0 AGSL shader and the in-app preview.
+- Adds **Diagnostic logging**, on by default, plus **Export logs (.txt)**, **Copy logs** and **Clear logs**.
+- Records startup/hook targets, settings reads, sampled icon mappings and tag classes, successful/failed asset decoding, binding counts, capture/render status, restart outcomes and caught hook exceptions.
+- Export includes device/Android/launcher/add-on versions and current settings, even if the launcher never connects.
+- Keeps at most two 64 KiB private log segments and uses a bounded launcher logging queue. No Internet permission, automatic upload, wallpaper images or system logcat collection.
+- Retains 0.3.0's Kashi ShortcutIcon drawing fix and restart/activation controls. The normal 0.3.0 release remains available.
 
-## Activate
+## Test and send logs
 
-1. In LSPosed enable **devarix Glass**, scoped to **System launcher (`com.miui.home`)**.
-2. Open **devarix Glass → Enable Liquid Glass**.
-3. Tap **Restart launcher**, allow root, then open the home screen. Reboot instead if root is denied.
-4. Return to the app and check **Launcher status**. If icons are still stock, report the three binding counts and your exact Kashi version.
+1. Enable **devarix Glass** in LSPosed, scoped to **System launcher (`com.miui.home`)**.
+2. In devarix Glass, keep **Diagnostic logging** on; tap **Clear logs → Enable Liquid Glass → Restart launcher** and allow root.
+3. Open home and the app drawer to reproduce the bug.
+4. Return to the app, tap **Export logs (.txt)**, save the file and attach it to the chat/bug report. Use **Copy logs** if your ROM has no file picker.
 
-Requires Android 13+ and LSPosed. Liquid refraction samples a **static wallpaper**; **Wallpaper access via root** remains a separate opt-in for denied wallpaper reads. Restart permission does not enable wallpaper access.
+Logs include sampled app package names and device model; export/copy only when you choose. Logging can be disabled and retained entries cleared. A missing launcher connection may need the relevant LSPosed module error as well.
 
-**No physical device verification yet.** Build, unit tests, lint, APK signature, 700 + 700 icon assets and upstream shader provenance are checked. The preview alone does not verify launcher integration.
+Build, unit tests, lint, icon assets, shader provenance and APK signature are checked. **Physical-device behavior is not yet verified.** This is a prerelease for debugging, not a verified stable build.
 
-If an update is rejected due to the development signing key, uninstall **devarix Glass only**, reinstall, re-enable its LSPosed scope and restart. Keep System launcher installed.
-
-Source: https://github.com/OlahDavidXdd/glass-ximi/tree/main/launcher-addon
+If Android rejects the update because of the development signing key, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.
