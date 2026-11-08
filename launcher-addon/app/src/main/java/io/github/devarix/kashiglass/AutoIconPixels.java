@@ -27,7 +27,7 @@ final class AutoIconPixels {
             int color=out[i],alpha=color>>>24;
             if(alpha==0)continue;
             int luma=(((color>>16)&255)*54+((color>>8)&255)*183+(color&255)*19)>>8;
-            int silver=174+(luma*76/255);out[i]=(alpha<<24)|(silver<<16)|(silver<<8)|silver;
+            int silver=214+(luma*36/255);out[i]=(alpha<<24)|(silver<<16)|(silver<<8)|silver;
         }
         return out;
     }

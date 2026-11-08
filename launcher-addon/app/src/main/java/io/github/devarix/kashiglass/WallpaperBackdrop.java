@@ -25,6 +25,7 @@ final class WallpaperBackdrop implements GlassBackdrop {
     private volatile Bitmap bitmap;
     private volatile boolean active,rootAllowed,loading;
     private volatile long generation;
+    private volatile long contentVersion;
     private volatile Process process;
     private float offsetX=.5f,offsetY=.5f;
     private String failure="Wallpaper is not loaded yet.";
@@ -38,6 +39,7 @@ final class WallpaperBackdrop implements GlassBackdrop {
         if(different){generation++;cancelProcess();bitmap=null;if(enabled)refresh();else changed.run();}
     }
     void offsets(float x,float y){if(Math.abs(x-offsetX)<.001f&&Math.abs(y-offsetY)<.001f)return;offsetX=Math.max(0,Math.min(1,x));offsetY=Math.max(0,Math.min(1,y));if(active&&bitmap!=null)changed.run();}
+    long version(){return contentVersion;}
     String failure(){return failure;}
     @Override public boolean isAvailable(){return bitmap!=null;}
     void refresh(){
@@ -53,7 +55,7 @@ final class WallpaperBackdrop implements GlassBackdrop {
                 loading=false;
                 if(!active)return;
                 if(generation!=request){refresh();return;}
-                bitmap=image;failure=message==null?"":message;
+                bitmap=image;contentVersion++;failure=message==null?"":message;
                 status.accept(image!=null?"Static wallpaper available for the QWEA0 lens. Rendering still needs a device check.":"Liquid Glass capture unavailable: "+failure);
                 changed.run();
             });

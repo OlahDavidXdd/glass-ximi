@@ -25,6 +25,7 @@ public final class GlassProvider extends ContentProvider {
             prefs.edit().putLong("connected_at",System.currentTimeMillis()).apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
+            result.putBoolean("drawer_glass",prefs.getBoolean("drawer_glass",true));
             result.putBoolean("dock_glass",prefs.getBoolean("dock_glass",true));
             result.putBoolean("search_glass",prefs.getBoolean("search_glass",true));
             result.putBoolean("automatic",prefs.getBoolean("automatic",true));
@@ -38,7 +39,14 @@ public final class GlassProvider extends ContentProvider {
             try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list(GlassConfig.assetDirectory(style))) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }
             catch (IOException e) { result.putString("error", e.toString()); }
         } else if ("log".equals(method)) {
-            if(extras!=null)DebugLog.event(getContext(),"LAUNCHER/"+DiagnosticLog.clean(extras.getString("event"),32),extras.getString("message"));
+            if(extras!=null){
+                String event=extras.getString("event"),message=extras.getString("message");
+                DebugLog.event(getContext(),"LAUNCHER/"+DiagnosticLog.clean(event,32),message);
+                if("ANIMATION".equals(event)&&message!=null&&message.startsWith("Animation input replaced:")){
+                    synchronized(GlassProvider.class){prefs.edit().putInt("animation_replacements",Math.min(1000000,prefs.getInt("animation_replacements",0)+1)).putString("last_animation",DiagnosticLog.clean(message,600)).apply();}
+                    getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
+                }
+            }
         } else if ("surfaces".equals(method)) {
             String value=extras==null?null:extras.getString("surfaces");
             if(value!=null){prefs.edit().putString("surfaces",DiagnosticLog.clean(value,600)).apply();DebugLog.event(getContext(),"SURFACES",value);}

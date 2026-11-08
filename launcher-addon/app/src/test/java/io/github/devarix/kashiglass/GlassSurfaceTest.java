@@ -9,6 +9,18 @@ public class GlassSurfaceTest {
         assertEquals(GlassSurface.NONE,GlassSurface.kind("com.miui.home.dockView.HotseatBackgroundPreview"));
         assertEquals(GlassSurface.NONE,GlassSurface.kind("com.other.SearchBar"));
     }
+    @Test public void drawerOnlyClearsKnownStructuralBackdrops(){
+        assertEquals(GlassSurface.DRAWER,GlassSurface.kind("com.miui.home.launcher.allapps.AllAppsContainerView"));
+        assertTrue(GlassSurface.drawerLayer("com.miui.home.launcher.allapps.AllAppsRecyclerView"));
+        assertFalse(GlassSurface.drawerLayer("com.miui.home.launcher.ShortcutIcon"));
+        assertFalse(GlassSurface.drawerLayer("android.widget.EditText"));
+        assertFalse(GlassSurface.drawerLayer("com.other.AllAppsRecyclerView"));
+    }
+    @Test public void fullScreenDrawerCornersStayBoundedOnLargeDisplays(){
+        assertEquals(108f,GlassSurface.radius(1080,2400,GlassSurface.DRAWER,3),.001f);
+        assertEquals(108f,GlassSurface.radius(2400,3400,GlassSurface.DRAWER,3),.001f);
+        assertEquals(12f,GlassSurface.radius(100,500,GlassSurface.DRAWER,3),.001f);
+    }
     @Test public void searchRadiusRemainsAPillAtDifferentWidths(){
         assertEquals(24f,GlassSurface.radius(120,48,GlassSurface.SEARCH),.001f);
         assertEquals(24f,GlassSurface.radius(600,48,GlassSurface.SEARCH),.001f);

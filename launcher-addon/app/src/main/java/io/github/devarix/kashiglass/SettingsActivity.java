@@ -31,6 +31,7 @@ public final class SettingsActivity extends Activity {
         toggle(page,"Automatic glass icons","Creates a silver foreground and glass finish for apps without a bundled mapping. Bundled artwork always takes priority.","automatic");
         toggle(page,"Glass dock","Rounded gray glass behind the dock icons. Uses the same lens, reflections and blur strength as Liquid Glass icons.","dock_glass");
         toggle(page,"Glass search bar","Matching glass capsule for Kashi’s built-in home and drawer search bars. Their controls and native width are retained.","search_glass");
+        toggle(page,"Glass app drawer","Frosted gray sheet behind the app grid and search results. Keeps scrolling, categories and search input.","drawer_glass");
         blurSwitch=toggle(page,"Backdrop blur","Liquid Glass uses the QWEA0 shader; Frosted Glass uses Xiaomi native blur.","blur");
         toggle(page,"Wallpaper access via root","Optional. If normal wallpaper access is denied, requests root for System launcher to read the current static wallpaper only.","root_wallpaper");
         Button enable=new Button(this);enable.setText("Enable Liquid Glass");page.addView(enable);
@@ -66,7 +67,7 @@ public final class SettingsActivity extends Activity {
         Button copy=new Button(this);copy.setText("Copy logs");page.addView(copy);
         copy.setOnClickListener(v->new Thread(()->{try{String report=DebugLog.snapshot(this);main.post(()->{if(isDestroyed())return;((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("devarix Glass logs",report));Toast.makeText(this,"Logs copied",Toast.LENGTH_SHORT).show();});}catch(Exception e){logFailure(e);}},"glass-copy-log").start());
         Button clear=new Button(this);clear.setText("Clear logs");page.addView(clear);
-        clear.setOnClickListener(v->{try{DebugLog.clear(this);Toast.makeText(this,"Logs cleared",Toast.LENGTH_SHORT).show();}catch(Exception e){logFailure(e);}});
+        clear.setOnClickListener(v->{try{DebugLog.clear(this);updateStatus();Toast.makeText(this,"Logs cleared",Toast.LENGTH_SHORT).show();}catch(Exception e){logFailure(e);}});
         text(page,"Experimental build. Hooks were checked against Kashi V7.5. Liquid Glass currently samples static wallpapers; live wallpapers need the native Frosted mode. A device test is still required. If blur is unavailable, it will not be replaced by a fake blur image.",14,0xffb8b8b8);
         text(page,"Developer: devarix\nOriginal base symbols: 一凡UI / Guofeng 26 Lite. Liquid Glass renderer: QWEA0 / pandadog (MIT). Additional icon sources are listed in the source repository.",13,0xffaaaaaa);
         getContentResolver().registerContentObserver(android.net.Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),false,observer);
@@ -77,7 +78,7 @@ public final class SettingsActivity extends Activity {
         long connected=prefs.getLong("connected_at",0);
         String connection=connected==0?"Launcher has not connected. Check LSPosed scope and restart launcher.":"Last launcher settings read: "+android.text.format.DateFormat.format("HH:mm:ss",connected);
         if(checkStarted>0&&connected<checkStarted)connection=checking?"Checking… Open the home screen now.":"No fresh launcher response. Check LSPosed scope, unlock the phone, and restart launcher.";
-        status.setText(connection+"\n"+prefs.getString("bindings","No icon binding counts received yet. Open the home screen or app drawer.")+"\n"+prefs.getString("surfaces","Waiting for dock/search surface bindings.")+"\n"+prefs.getString("status","Waiting for launcher."));
+        status.setText(connection+"\n"+prefs.getString("bindings","No icon binding counts received yet. Open the home screen or app drawer.")+"\n"+prefs.getString("surfaces","Waiting for dock/search surface bindings.")+"\nLogged animation replacements: "+prefs.getInt("animation_replacements",0)+"\n"+prefs.getString("last_animation","No native animation inputs logged yet.")+"\n"+prefs.getString("status","Waiting for launcher."));
     }
     private void restartLauncher(Button button){
         DebugLog.event(this,"RESTART_REQUEST","Current user="+android.os.Process.myUid()/100000);
@@ -114,7 +115,7 @@ public final class SettingsActivity extends Activity {
     private void logFailure(Exception e){DebugLog.event(this,"EXPORT_ERROR",android.util.Log.getStackTraceString(e));main.post(()->{if(!isDestroyed())Toast.makeText(this,"Log action failed: "+e.getClass().getSimpleName(),Toast.LENGTH_LONG).show();});}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private TextView text(LinearLayout page,String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(10),0,dp(12));page.addView(t);return t;}
-    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
+    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
     @Override protected void onResume(){super.onResume();updateStatus();}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);getContentResolver().unregisterContentObserver(observer);super.onDestroy();}
 }

@@ -55,6 +55,33 @@
         "onFinishInflate",
         "onAttachedToWindow"
       ]
+    },
+    "Lcom/miui/home/launcher/allapps/BaseAllAppsContainerView;": {
+      "superclass": "Landroid/widget/RelativeLayout;",
+      "binding_methods": [
+        "onFinishInflate",
+        "onAttachedToWindow",
+        "updateContainerVisibility"
+      ]
+    },
+    "Lcom/miui/home/recents/views/FloatingIconView2;": {
+      "binding_methods": [
+        "init"
+      ],
+      "animation_parameter_pair": [
+        "com.miui.home.common.animate.LaunchAppAndBackHomeAnimTarget",
+        "android.graphics.drawable.Drawable"
+      ]
+    },
+    "Lcom/miui/home/recents/views/FloatingIconLayer2;": {
+      "binding_methods": [
+        "init",
+        "initDrawable"
+      ],
+      "animation_parameter_pair": [
+        "com.miui.home.common.animate.LaunchAppAndBackHomeAnimTarget",
+        "android.graphics.drawable.Drawable"
+      ]
     }
   },
   "device_blur_verified": false

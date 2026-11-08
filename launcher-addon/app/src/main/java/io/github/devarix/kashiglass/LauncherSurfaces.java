@@ -11,10 +11,11 @@ import de.robv.android.xposed.*;
 
 /** Replaces decorative backgrounds only; the launcher's input and layout code stays in charge. */
 final class LauncherSurfaces {
-    private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout"};
+    private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout","com.miui.home.launcher.allapps.BaseAllAppsContainerView","com.miui.home.launcher.allapps.AllAppsCategoryContainer","com.miui.home.launcher.allapps.category.AllAppsCategoryListContainer","com.miui.home.launcher.allapps.AllAppsRecyclerView","com.miui.home.launcher.allapps.search.AllAppsSearchContainer"};
     private final Map<View,State> states=new WeakHashMap<>();
+    private final Map<View,State> layers=new WeakHashMap<>();
     private final Consumer<String> report,log;
-    private boolean enabled,dock=true,search=true,blur;
+    private boolean enabled,dock=true,search=true,drawer=true,blur;
     private int radius=24,revision;
     private GlassBackdrop backdrop;
     private String lastCounts="",lastRenderStatus="";
@@ -33,25 +34,31 @@ final class LauncherSurfaces {
                     if(XposedHelpers.getAdditionalInstanceField(view,"devarix_surface")!=null)return;
                     XposedHelpers.setAdditionalInstanceField(view,"devarix_surface",true);
                     view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->apply(v));
+                    if(GlassSurface.kind(name)==GlassSurface.DRAWER)view.getViewTreeObserver().addOnPreDrawListener(()->{
+                        if(enabled&&drawer){State state=states.get(view);if(state!=null&&state.applied&&view.getBackground()!=state.ours)apply(view);
+                            for(View layer:new ArrayList<>(layers.keySet()))if(layer!=null){State ls=layers.get(layer);if(ls!=null&&ls.applied&&layer.getBackground()!=ls.ours)clearLayer(layer);}}
+                        counts();return true;
+                    });
                     view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View v){apply(v);}public void onViewDetachedFromWindow(View v){counts();}});
                 }});
-                for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged"}){
+                for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged","updateContainerVisibility","resetAppsWhenLauncherModeChanged"}){
                     XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){apply((View)p.thisObject);}});
                 }
             }catch(Throwable e){log.accept("Hook error "+name+": "+e);}
         }
     }
-    void configure(boolean enabled,boolean dock,boolean search,boolean blur,int radius,GlassBackdrop backdrop){
-        if(this.enabled!=enabled||this.dock!=dock||this.search!=search||this.blur!=blur||this.radius!=radius)revision++;
-        this.enabled=enabled;this.dock=dock;this.search=search;this.blur=blur;this.radius=radius;this.backdrop=backdrop;
+    void configure(boolean enabled,boolean dock,boolean search,boolean drawer,boolean blur,int radius,GlassBackdrop backdrop){
+        if(this.enabled!=enabled||this.dock!=dock||this.search!=search||this.drawer!=drawer||this.blur!=blur||this.radius!=radius)revision++;
+        this.enabled=enabled;this.dock=dock;this.search=search;this.drawer=drawer;this.blur=blur;this.radius=radius;this.backdrop=backdrop;
         for(View view:new ArrayList<>(states.keySet()))if(view!=null)apply(view);
+        if(!enabled||!drawer)for(View view:new ArrayList<>(layers.keySet()))if(view!=null)restore(view,layers.get(view));
         counts();
     }
     void apply(View view){
         int kind=GlassSurface.NONE;
         for(Class<?> type=view.getClass();type!=null;type=type.getSuperclass()){kind=GlassSurface.kind(type.getName());if(kind!=GlassSurface.NONE)break;}
-        if(kind==GlassSurface.NONE)return;
-        State state=states.get(view);boolean active=enabled&&backdrop!=null&&(kind==GlassSurface.DOCK?dock:search);
+        if(kind==GlassSurface.NONE){if(GlassSurface.drawerLayer(view.getClass().getName()))clearLayer(view);return;}
+        State state=states.get(view);boolean active=enabled&&backdrop!=null&&(kind==GlassSurface.DOCK?dock:kind==GlassSurface.DRAWER?drawer:search);
         if(!active){if(state!=null)restore(view,state);return;}
         if(state==null){state=new State();state.kind=kind;states.put(view,state);}
         try{
@@ -61,7 +68,7 @@ final class LauncherSurfaces {
                 int inset=kind==GlassSurface.DOCK?Math.round(8*view.getResources().getDisplayMetrics().density):0;
                 state.ours=inset==0?glass:new InsetDrawable(glass,inset,Math.round(inset*.6f),inset,Math.round(inset*.6f));
                 background(view,state.ours);view.setBackgroundTintList(null);state.applied=true;state.revision=revision;
-                log.accept("Applied "+(kind==GlassSurface.DOCK?"dock":"search pill")+" "+view.getClass().getName()+" "+view.getWidth()+"x"+view.getHeight());
+                log.accept("Applied "+(kind==GlassSurface.DOCK?"dock":kind==GlassSurface.DRAWER?"drawer sheet":"search pill")+" "+view.getClass().getName()+" "+view.getWidth()+"x"+view.getHeight());
             }
             if(kind==GlassSurface.DOCK){
                 Object value=XposedHelpers.getObjectField(view,"mBgBlurView");
@@ -70,8 +77,19 @@ final class LauncherSurfaces {
                     if(decor.getVisibility()==View.VISIBLE){state.decorVisibility=View.VISIBLE;state.decorHidden=true;decor.setVisibility(View.INVISIBLE);}
                 }
             }
+            if(kind==GlassSurface.DRAWER&&view instanceof ViewGroup)clearDescendants((ViewGroup)view);
             view.invalidate();counts();
         }catch(Throwable e){log.accept("Surface apply error: "+e);restore(view,state);}
+    }
+    private void clearDescendants(ViewGroup parent){for(int i=0;i<parent.getChildCount();i++){View child=parent.getChildAt(i);if(GlassSurface.drawerLayer(child.getClass().getName()))clearLayer(child);if(child instanceof ViewGroup)clearDescendants((ViewGroup)child);}}
+    private boolean insideDrawer(View view){for(ViewParent parent=view.getParent();parent instanceof View;parent=parent.getParent()){for(Class<?> type=parent.getClass();type!=null;type=type.getSuperclass())if(GlassSurface.kind(type.getName())==GlassSurface.DRAWER)return true;}return false;}
+    private void clearLayer(View view){
+        if(!enabled||!drawer||!insideDrawer(view)){State existing=layers.get(view);if(existing!=null)restore(view,existing);return;}
+        State state=layers.get(view);if(state==null){state=new State();layers.put(view,state);}
+        if(state.applied&&view.getBackground()==state.ours)return;
+        state.original=view.getBackground();state.tint=view.getBackgroundTintList();state.mode=view.getBackgroundTintMode();
+        state.ours=new ColorDrawable(android.graphics.Color.TRANSPARENT);background(view,state.ours);view.setBackgroundTintList(null);state.applied=true;
+        log.accept("Cleared drawer structural backdrop: "+view.getClass().getName());
     }
     private static void background(View view,Drawable drawable){
         // setBackground may apply drawable padding; preserve the launcher's current layout.
@@ -86,11 +104,11 @@ final class LauncherSurfaces {
     private void renderStatus(String message){if(!message.equals(lastRenderStatus)){lastRenderStatus=message;log.accept(message);}}
     void invalidate(){for(View view:new ArrayList<>(states.keySet()))if(view!=null)view.invalidate();}
     private void counts(){
-        int docks=0,searches=0;
+        int docks=0,searches=0,drawers=0;
         for(var entry:states.entrySet())if(entry.getKey()!=null&&entry.getValue().applied&&entry.getKey().isShown()){
-            if(entry.getValue().kind==GlassSurface.DOCK)docks++;else searches++;
+            if(entry.getValue().kind==GlassSurface.DOCK)docks++;else if(entry.getValue().kind==GlassSurface.DRAWER)drawers++;else searches++;
         }
-        String value="Glass surfaces: "+docks+" visible dock, "+searches+" visible search bar.";
+        String value="Glass surfaces: "+docks+" visible dock, "+searches+" visible search bar, "+drawers+" glass app drawer.";
         if(!value.equals(lastCounts)){lastCounts=value;report.accept(value);}
     }
 }

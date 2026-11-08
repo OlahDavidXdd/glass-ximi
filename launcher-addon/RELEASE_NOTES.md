@@ -1,22 +1,22 @@
 Developer: **devarix**
 
-## 0.5.0 — Matching Liquid Glass dock and search
+## 0.6.0 — iPhone reference glass, frosted drawer and native animation inputs
 
-- Adds **Glass dock** and **Glass search bar**, on by default with the icon pack.
-- Uses the same QWEA0 lens, gray tint, stronger refraction, silver rim reflections and blur strength as the icons. The dock has broad rounded corners; search uses a capsule shape.
-- Styles Kashi HotSeats and its home/drawer search layouts. Restores replaced backgrounds/tints and the existing dock decoration when disabled. Native layout and input handlers are retained.
-- Updates **Preview Liquid Glass** to show icons, dock and search together over the striped test background.
-- Adds surface binding counts and errors to Launcher status and exported logs.
-- Includes 0.4.0's automatic silver/glass artwork for unmapped apps, synchronous icon binding and glass snapshots for known app animation paths. Logging/restart controls and older release backups remain available.
+- Softer gray frost, a curved gloss cap, finer double rim and brighter silver automatic icons, tuned from the supplied iPhone photo. No blue tint or dispersion.
+- Adds **Glass app drawer**, on by default: a frosted wallpaper-backed sheet behind the native grid and search results. Only identified structural backgrounds are cleared; they are restored on disable.
+- Replaces direct Drawable inputs to **FloatingIconView2.init** and **FloatingIconLayer2.init/initDrawable**, which can bypass the icon getters hooked in 0.5.0. Narrow class/signature matching is checked against the current public Kashi V7.5 APK.
+- Hands each animation its own mutable bitmap, keeping native fill/recycle operations away from the snapshot cache.
+- Keeps snapshots across wallpaper-offset changes, warms them at staggered times, and captures a detached icon at its original geometry. A cold worker-thread fallback uses static glass artwork, not a stock icon; it is logged separately.
+- Adds **Logged animation replacements** and last-event details to status/log export. Includes automatic icons, matching dock/search, preview, restart and logging controls. Previous releases remain available.
 
-## Apply
+## Apply and check the flash
 
-Install the APK, enable the module in LSPosed scoped to **System launcher (`com.miui.home`)**, then open **devarix Glass → Enable Liquid Glass → Restart launcher**. Leave **Automatic glass icons**, **Glass dock**, and **Glass search bar** on. Each can be disabled independently.
+Install, enable **devarix Glass** in LSPosed scoped to **System launcher (`com.miui.home`)**, then choose **Enable Liquid Glass → Restart launcher**. Leave **Glass app drawer** and the other glass surface switches on.
 
-Uses the existing launcher geometry; this does not replace the whole home screen with an iOS layout. Search styling requires Kashi's built-in search bar; external search widgets are not altered. Hidden/disabled controls are not created or forced visible. Liquid refraction samples the current static wallpaper; animation snapshots remain static, and GPU readback can use a glass fallback.
+For a clean test: **Diagnostic logging on → Clear logs → Restart launcher → open/close apps → return to status**. If the flash remains, export the log file and report **Logged animation replacements**, affected apps, whether it occurs opening/closing, and launcher version. A nonzero counter establishes that an input hook ran; it does not prove every animation frame is correct. The previous fix did not resolve the reported phone behavior, and this new fix still needs phone verification.
 
-If a stock-icon flash remains or a surface fails, use **Clear logs → Restart launcher**, reproduce it, then **Export logs (.txt)** and send the file with your exact Kashi version and affected app/control.
+Real refraction/blur samples the static wallpaper. Animation snapshots stay static; GPU readback/cold-start failures can use a glass artwork fallback. Android system splash icons are outside this launcher's scope. No wallpaper images, system logcat, automatic uploads or launcher data clearing are added.
 
-Build, unit tests, lint, signature, curated assets and upstream shader provenance are checked. **The new surface and transition changes still require phone verification.**
+Build, unit tests, lint, APK signature, curated assets and unchanged shader provenance are checked. **New material/drawer/transition behavior has not been verified on a physical device.**
 
-If the development signing key prevents updating, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.
+If the development key prevents updating, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.

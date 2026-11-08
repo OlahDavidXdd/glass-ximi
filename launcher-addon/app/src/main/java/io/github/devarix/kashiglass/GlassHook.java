@@ -34,6 +34,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static final ExecutorService IO=Executors.newSingleThreadExecutor();
     private static final Map<View,State> STATES=new WeakHashMap<>();
     private static final Map<String,ArrayList<WeakReference<View>>> PENDING=new HashMap<>();
+    private static final Set<String> WARMING=new HashSet<>();
+    private static long snapshotWallpaperVersion=-1,nextWarmAt;
     private static final Set<String> FAILED=new HashSet<>();
     private static final LruCache<String,Bitmap> ICONS=new LruCache<>(32*1024*1024){@Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}};
     private static final LruCache<String,Bitmap> TRANSITIONS=new LruCache<>(8*1024*1024){@Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getAllocationByteCount();}};
@@ -64,6 +66,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         MAIN=new Handler(Looper.getMainLooper());
         surfaces=new LauncherSurfaces(GlassHook::surfaceReport,message->debug("SURFACE",message));
         surfaces.install(param.classLoader);
+        new LauncherAnimations(()->enabled&&!INTERNAL.get(),GlassHook::animationSnapshot,message->debug("ANIMATION",message)).install(param.classLoader);
         XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
             @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];try{initialize();}catch(Throwable e){error("INITIALIZE_ERROR",e);}}}
         });
@@ -71,7 +74,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         XposedHelpers.findAndHookMethod(ImageView.class,"setImageDrawable",Drawable.class,new XC_MethodHook(){
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!(p.thisObject instanceof ImageView)||!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
-                View view=(View)p.thisObject;State state=state(view);state.resolveCached=false;rememberCurrent(view,state);state.original=(Drawable)p.args[0];state.originalKey=resolve(view);state.applied=false;
+                View view=(View)p.thisObject;State state=state(view);state.resolveCached=false;rememberCurrent(view,state);captureOriginal(view,state,(Drawable)p.args[0]);state.applied=false;
                 String pkg=resolve(view);Bitmap bitmap=enabled?ICONS.get(assetKey(pkg)):null;
                 if(bitmap!=null){p.args[0]=makeDrawable(view,bitmap);state.applied=true;state.packageName=pkg;}
             }
@@ -84,7 +87,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     if(!enabled||INTERNAL.get()||Looper.myLooper()!=Looper.getMainLooper())return;
                     View view=(View)p.thisObject;State state=state(view);state.resolveCached=false;rememberCurrent(view,state);
-                    state.original=(Drawable)p.args[0];state.originalKey=resolve(view);state.applied=false;
+                    captureOriginal(view,state,(Drawable)p.args[0]);state.applied=false;
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get())apply((View)p.thisObject);}
             });
@@ -104,7 +107,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     @Override protected void afterHookedMethod(MethodHookParam p){
                         if(!enabled||INTERNAL.get()||Looper.myLooper()!=Looper.getMainLooper())return;
                         View view=(View)p.thisObject;apply(view);Bitmap bitmap=transition(view);
-                        if(bitmap!=null){p.setResult("getBoomAnimBitmap".equals(name)?bitmap:new BitmapDrawable(view.getResources(),bitmap));sample("transition:"+name,"Styled transition supplied via "+name);}
+                        if(bitmap!=null){p.setResult("getBoomAnimBitmap".equals(name)?OwnedTransitionDrawable.copy(bitmap):new OwnedTransitionDrawable(view.getResources(),bitmap));sample("transition:"+name,"Styled transition supplied via "+name);}
                     }
                 });
             }
@@ -125,7 +128,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
             @Override protected void afterHookedMethod(MethodHookParam p){
                 if(!enabled||INTERNAL.get())return;
                 String key=fromInfo(p.thisObject);Bitmap bitmap=key==null?null:TRANSITIONS.get(assetKey(key));
-                if(bitmap!=null)p.setResult(new BitmapDrawable(context.getResources(),bitmap));
+                if(bitmap!=null)p.setResult(new OwnedTransitionDrawable(context.getResources(),bitmap));
             }
         });
         Class<?> iconClass=XposedHelpers.findClassIfExists("com.miui.home.icon.LauncherIconImageView",param.classLoader);
@@ -179,6 +182,30 @@ public final class GlassHook implements IXposedHookLoadPackage {
         return false;
     }
     private static State state(View view){State s=STATES.get(view);if(s==null){s=new State();s.original=getIconDrawable(view);STATES.put(view,s);s.originalKey=resolve(view);}return s;}
+    private static void captureOriginal(View view,State state,Drawable incoming){
+        if(incoming instanceof OwnedTransitionDrawable){Object raw=field(view.getTag(),"mIconDrawable");if(raw instanceof Drawable&&!(raw instanceof OwnedTransitionDrawable)&&!(raw instanceof LiquidGlassDrawable))state.original=(Drawable)raw;}
+        else if(!(incoming instanceof LiquidGlassDrawable))state.original=incoming;
+        state.originalKey=resolve(view);
+    }
+    private static void warmTransition(View view,String pkg){
+        String key=assetKey(pkg);if(TRANSITIONS.get(key)!=null||WARMING.size()>=64||!WARMING.add(key))return;
+        WeakReference<View> reference=new WeakReference<>(view);
+        nextWarmAt=Math.max(SystemClock.uptimeMillis()+32,nextWarmAt+24);
+        MAIN.postAtTime(()->{WARMING.remove(key);View current=reference.get();if(enabled&&current!=null&&current.isAttachedToWindow()&&pkg.equals(resolve(current)))transition(current);},nextWarmAt);
+    }
+    private static Bitmap animationSnapshot(Object target){
+        if(target instanceof View&&isIcon(target)){
+            View view=(View)target;
+            if(Looper.myLooper()==Looper.getMainLooper()){apply(view);return transition(view);}
+            Object key=XposedHelpers.getAdditionalInstanceField(view,"devarix_icon_key");
+            if(!(key instanceof String))return null;
+            Bitmap cached=TRANSITIONS.get(assetKey((String)key));if(cached!=null&&!cached.isRecycled())return cached;
+            Object glyph=XposedHelpers.getAdditionalInstanceField(view,"devarix_icon_glyph");
+            if(glyph instanceof Bitmap&&!((Bitmap)glyph).isRecycled()){debug("ANIMATION_COLD_FALLBACK",(String)key);return LiquidGlassDrawable.coldTransition((Bitmap)glyph);}
+            return null;
+        }
+        String key=fromInfo(call(target,"getMBuddyInfo"));return key==null?null:TRANSITIONS.get(assetKey(key));
+    }
     private static void rememberCurrent(View view,State state){
         String key=resolve(view);if(!state.applied||key==null||!key.equals(state.packageName))return;
         Drawable current=getIconDrawable(view);
@@ -187,7 +214,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static String assetKey(String pkg){return style+":"+(pkg==null?"":pkg);}
     private static Drawable makeDrawable(View view,Bitmap bitmap){return "liquid".equals(style)||GlassConfig.automaticKey(resolve(view))?new LiquidGlassDrawable(view,bitmap,wallpaper,blur,radius,GlassHook::report):new BitmapDrawable(view.getResources(),bitmap);}
-    private static void refreshLiquid(){TRANSITIONS.evictAll();if(surfaces!=null)surfaces.invalidate();if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
+    private static void refreshLiquid(){if(wallpaper!=null&&snapshotWallpaperVersion!=wallpaper.version()){snapshotWallpaperVersion=wallpaper.version();TRANSITIONS.evictAll();debug("TRANSITION_CACHE","Wallpaper content changed; snapshots cleared");}if(surfaces!=null)surfaces.invalidate();if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
     private static void initialize(){
         synchronized(EARLY_LOGS){while(!EARLY_LOGS.isEmpty()){String[] entry=EARLY_LOGS.removeFirst();debug(entry[0],entry[1]);}}
         debug("ATTACH","Launcher context attached; SDK="+Build.VERSION.SDK_INT);
@@ -204,7 +231,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 debugEnabled=config.getBoolean("debug_logs",true);
                 debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
-                boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true);
+                boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true);
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
@@ -213,8 +240,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     if(replace)TRANSITIONS.evictAll();
                     if(replace)for(View view:new ArrayList<>(STATES.keySet()))if(view!=null)restore(view,state(view));
                     enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;packages=nextPackages;FAILED.clear();
-                    LiquidGlassDrawable.configure(shader,plate);wallpaper.configure(enabled&&("liquid".equals(style)||nextDock||nextSearch),root);
-                    if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,blur,radius,wallpaper);
+                    LiquidGlassDrawable.configure(shader,plate);wallpaper.configure(enabled&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
+                    if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,nextDrawer,blur,radius,wallpaper);
                     report(enabled?"Selected "+style+" material. Waiting for mapped icons to bind.":"Launcher connected. Glass icons are disabled.");
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}
                     Activity activity=lastActivity.get();if(enabled&&activity!=null)scan(activity.getWindow().getDecorView());
@@ -254,6 +281,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         if(Looper.myLooper()!=Looper.getMainLooper()){MAIN.post(()->apply(view));return;}
         if(context==null||INTERNAL.get())return;
         State state=state(view);String pkg=resolve(view);
+        if(pkg!=null)XposedHelpers.setAdditionalInstanceField(view,"devarix_icon_key",pkg);
         Object tag=view.getTag();
         sample(view.getClass().getName()+":"+pkg+":"+(tag==null?"null":tag.getClass().getName()),"view="+view.getClass().getName()+" mapping="+pkg+" tagType="+(tag==null?"null":tag.getClass().getName()));
         if(!enabled||pkg==null){restore(view,state);return;}
@@ -264,16 +292,19 @@ public final class GlassHook implements IXposedHookLoadPackage {
             catch(Throwable e){error("AUTO_GLYPH_ERROR",e);}
         }
         if(bitmap==null){if(state.applied&&!pkg.equals(state.packageName))restore(view,state);if(!GlassConfig.automaticKey(pkg))load(pkg,view);return;}
+        XposedHelpers.setAdditionalInstanceField(view,"devarix_icon_glyph",bitmap);
         if(!state.applied||!pkg.equals(state.packageName)){
             if(!state.applied&&state.original==null)state.original=getIconDrawable(view);
             INTERNAL.set(true);try{setIconDrawable(view,makeDrawable(view,bitmap));}finally{INTERNAL.set(false);}
             state.applied=true;state.packageName=pkg;
+            warmTransition(view,pkg);
             sample("applied:"+pkg,"Applied "+style+" mapping="+pkg+" view="+view.getClass().getName());
         }
         if(!state.listener){state.listener=true;view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
             public void onViewAttachedToWindow(View v){MAIN.post(()->apply(v));}
             public void onViewDetachedFromWindow(View v){State s=STATES.get(v);if(s!=null)clearBlur(v,s);}
         });}
+        if(state.applied)warmTransition(view,pkg);
         if(blur&&view instanceof ImageView&&view.isAttachedToWindow()&&(!"liquid".equals(style)||!wallpaper.isAvailable()))nativeBlur(view,state);else clearBlur(view,state);
     }
     private static void load(String pkg,View view){
@@ -298,7 +329,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static Bitmap transition(View view){
         if(context==null||Looper.myLooper()!=Looper.getMainLooper())return null;
         State state=state(view);if(!state.applied||state.packageName==null)return null;
-        String key=assetKey(state.packageName);Bitmap cached=TRANSITIONS.get(key);if(cached!=null)return cached;
+        String key=assetKey(state.packageName);Bitmap cached=TRANSITIONS.get(key);if(cached!=null&&!cached.isRecycled())return cached;
         Drawable drawable=getIconDrawable(view);if(drawable==null)return null;
         try{
             Bitmap result;

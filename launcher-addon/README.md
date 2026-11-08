@@ -9,6 +9,18 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## iPhone reference finish, drawer and native animation fix (0.6.0)
+
+[Download 0.6.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.6.0-test). The finish now has softer neutral frost, a curved upper highlight, a fine double rim and brighter silver automatic glyphs, based on the supplied iPhone photo. Grayscale remains enabled and dispersion remains off. The unchanged QWEA0 shader still performs the optical refraction; the adapter supplies the material settings and reflection overlay.
+
+**Glass app drawer** is on by default. It adds a frosted sheet to Kashi's BaseAllAppsContainerView/AllAppsContainerView, clears only four identified structural drawer backdrops (never individual app/input/selection backgrounds), and restores their backgrounds/tints on disable. Scrolling, categories, search, click/focus handlers and layout remain native. Full-screen corner size and optical bevel are bounded rather than scaled to hundreds of pixels. Drawer sampling still uses the static wallpaper; it does not capture the complete launcher or live wallpaper surface. Test performance and appearance on the phone.
+
+The previous transition build could miss the direct Drawable parameter passed to **FloatingIconView2.init** and **FloatingIconLayer2.init/initDrawable**. These inputs now receive glass snapshots before the native code splits/copies the icon. Only exact adjacent LaunchAppAndBackHomeAnimTarget + Drawable parameters inside a four-class animation whitelist are patched; widgets without a known app snapshot keep their native behavior. The public V7.5 Kashi APK was checked for these signatures (V7.5 is the current public release at build time).
+
+Each animation/getter/model hand-off receives its own mutable bitmap copy: native fill/recycle code cannot modify the cache's bitmap. Wallpaper-position updates no longer empty that cache; wallpaper content/material changes still invalidate it. Snapshots are warmed at staggered times, and capture uses a detached drawable with the live icon's original geometry. A worker-thread cache miss can use a clearly logged static glass/glyph fallback, which is not wallpaper refraction. This addresses concrete gaps in 0.5.0; the remaining flash is not considered verified fixed until the phone test.
+
+Leave **Diagnostic logging** on. After **Clear logs → Restart launcher**, open and close apps, return to the app, and check **Logged animation replacements**. Export logs if the flash remains; the report now names the exact native input hooks, missing/cold-fallback snapshots and substitution events. This counter counts input replacements, not app launches or rendered frames.
+
 ## Matching glass dock and search (0.5.0)
 
 [Download 0.5.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.5.0-test). Includes all 0.4.0 icon changes plus **Glass dock** and **Glass search bar**, both on by default under the master icon switch.
