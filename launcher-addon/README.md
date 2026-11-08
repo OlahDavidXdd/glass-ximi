@@ -1,4 +1,4 @@
-# devarix Glass for Kashi
+#  Glass for Kashi
 
 An experimental, optional LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. It bundles the 700 gray glass icon mappings from the theme project and calls Xiaomi's native per-view background-blur APIs behind the icon images.
 
