@@ -9,6 +9,18 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Animation reliability update (0.10.0)
+
+[Download 0.10.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.10.0-test). Preserves the approved icon rendering and 0.9.0 search/widget surfaces. This update hardens animation hand-offs and source visibility without replacing Kashi’s springs, durations, geometry or cancel/end handling.
+
+Native targets can now resolve through bounded, cycle-safe view/container/model links. Evicted transition snapshots rebuild from available glyphs, and live view bindings publish their app key and artwork together to avoid mixing apps during drawer recycling. Widget and folder-preview animations retain native content. Every owned snapshot clone copies from an unexposed template; native bitmap mutation/recycling cannot poison other clones. Nested initializers reuse owned inputs.
+
+Same-app rebinding retains native source hide/fade state; actual app changes reset stale state in recycled drawer slots. Fade overshoot is clamped before native code receives it, and non-finite alpha updates are rejected. Launch/getter snapshot paths perform no new GPU/wallpaper capture or asset-provider read. Optional static-wallpaper lens mode uses a logged static fallback when no ready optical snapshot is available.
+
+Repeated Activity resumes no longer reload assets/settings. Unchanged connection checks do not reconstruct materials. The remaining full scan is debounced 400 ms and requires launcher focus. Diagnostics count both reused and newly replaced animation hand-offs, not rendered frames or app launches.
+
+Install, restart/reboot and check **Loaded hook: 0.10.0-test — matches app**. The build is checked against the public Kashi V7.5 native signatures and includes unit/lint/asset/signature checks, but physical-device animation smoothness is unverified. Check home/dock/drawer opening and closing, quick app switching, interrupted gestures and drawer recycling; export logs for any remaining issue. System splash artwork is outside the module’s scope. See [release notes](RELEASE_NOTES.md).
+
 ## Compact search and clock/weather widgets (0.9.0)
 
 [Download 0.9.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.9.0-test). The current icons and animation logic are preserved from 0.8.0, as requested. Validation checks hashes of their unchanged rendering/generation/transition source files.

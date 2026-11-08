@@ -11,8 +11,11 @@ final class LauncherAnimations {
     private final BooleanSupplier enabled;
     private final Function<Object,Bitmap> snapshots;
     private final Consumer<String> log;
+    private Class<?> widgetTarget,folderTarget;
     LauncherAnimations(BooleanSupplier enabled,Function<Object,Bitmap> snapshots,Consumer<String> log){this.enabled=enabled;this.snapshots=snapshots;this.log=log;}
     void install(ClassLoader loader){
+        widgetTarget=XposedHelpers.findClassIfExists("com.miui.home.launcher.anim.WidgetTypeAnimTarget",loader);
+        folderTarget=XposedHelpers.findClassIfExists("com.miui.home.folder.api.IFolderPreviewIconView",loader);
         for(String name:AnimationPolicy.TARGETS){
             Class<?> type=XposedHelpers.findClassIfExists(name,loader);if(type==null){log.accept("Target absent: "+name);continue;}
             for(Method method:type.getDeclaredMethods()){install(method,method.getParameterTypes());preserveAlpha(method);}
@@ -34,7 +37,10 @@ final class LauncherAnimations {
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!enabled.getAsBoolean())return;
                 try{
-                    Object target=p.args[index-1];Bitmap bitmap=snapshots.apply(target);
+                    Object target=p.args[index-1];
+                    if((widgetTarget!=null&&widgetTarget.isInstance(target))||(folderTarget!=null&&folderTarget.isInstance(target)))return;
+                    if(p.args[index] instanceof OwnedTransitionDrawable){log.accept("Animation input reused: "+member.getDeclaringClass().getSimpleName()+"."+member.getName());return;} // Already owns its pixels.
+                    Bitmap bitmap=snapshots.apply(target);
                     if(bitmap==null||bitmap.isRecycled()){log.accept("Animation snapshot missing: "+member.getDeclaringClass().getSimpleName()+"."+member.getName());return;}
                     p.args[index]=new OwnedTransitionDrawable(target instanceof View?((View)target).getResources():null,bitmap);
                     log.accept("Animation input replaced: "+member.getDeclaringClass().getSimpleName()+"."+member.getName()+" target="+(target==null?"null":target.getClass().getName()));

@@ -76,7 +76,7 @@ public final class GlassProvider extends ContentProvider {
             if(extras!=null){
                 String event=extras.getString("event"),message=extras.getString("message");
                 DebugLog.event(getContext(),"LAUNCHER/"+DiagnosticLog.clean(event,32),message);
-                if("ANIMATION".equals(event)&&message!=null&&message.startsWith("Animation input replaced:")){
+                if("ANIMATION".equals(event)&&message!=null&&(message.startsWith("Animation input replaced:")||message.startsWith("Animation input reused:"))){
                     synchronized(GlassProvider.class){prefs.edit().putInt("animation_replacements",Math.min(1000000,prefs.getInt("animation_replacements",0)+1)).putString("last_animation",DiagnosticLog.clean(message,600)).apply();}
                     getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
                 }
