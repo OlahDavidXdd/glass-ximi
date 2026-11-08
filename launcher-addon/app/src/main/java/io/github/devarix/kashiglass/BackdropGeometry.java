@@ -10,7 +10,11 @@ final class BackdropGeometry {
     boolean concatScreenToNode(Canvas target,View owner,Rect bounds,int margin){
         localToScreen.reset();
         if(owner instanceof ImageView)localToScreen.set(((ImageView)owner).getImageMatrix());
-        localToScreen.postTranslate(owner.getPaddingLeft(),owner.getPaddingTop());
+        if(owner instanceof android.widget.TextView){
+            // Top compound icon is horizontally centered in TextView's content box.
+            float x=owner.getPaddingLeft()+(owner.getWidth()-owner.getPaddingLeft()-owner.getPaddingRight()-bounds.width())*.5f;
+            localToScreen.postTranslate(x,owner.getPaddingTop());
+        }else localToScreen.postTranslate(owner.getPaddingLeft(),owner.getPaddingTop());
         localToScreen.postScale(owner.getScaleX(),owner.getScaleY());
         owner.getLocationOnScreen(location);
         localToScreen.postTranslate(location[0],location[1]);

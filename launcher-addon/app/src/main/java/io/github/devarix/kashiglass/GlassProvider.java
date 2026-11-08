@@ -22,6 +22,7 @@ public final class GlassProvider extends ContentProvider {
         var prefs = getContext().getSharedPreferences(GlassConfig.PREFS, 0);
         Bundle result = new Bundle();
         if ("settings".equals(method)) {
+            prefs.edit().putLong("connected_at",System.currentTimeMillis()).apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
             result.putBoolean("root_wallpaper",prefs.getBoolean("root_wallpaper",false));
@@ -31,6 +32,10 @@ public final class GlassProvider extends ContentProvider {
             result.putInt("radius", GlassConfig.radius(prefs.getInt("radius", GlassConfig.DEFAULT_RADIUS_DP)));
             try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list(GlassConfig.assetDirectory(style))) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }
             catch (IOException e) { result.putString("error", e.toString()); }
+        } else if ("diagnostics".equals(method)) {
+            String value=extras==null?null:extras.getString("bindings");
+            if(value!=null)prefs.edit().putString("bindings",value.substring(0,Math.min(600,value.length()))).apply();
+            getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
         } else if ("report".equals(method)) {
             String status = extras == null ? null : extras.getString("status");
             if (status != null) prefs.edit().putString("status", status.substring(0,Math.min(600,status.length()))).apply();

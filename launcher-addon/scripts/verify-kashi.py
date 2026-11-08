@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import zipfile,struct,re,json,sys
-apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;'};found={}
+apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;','Lcom/miui/home/launcher/ShortcutIcon;'};found={}
 with zipfile.ZipFile(apk) as z:
  for name in z.namelist():
   if not re.match(r'classes\d*\.dex$',name):continue
@@ -32,4 +32,5 @@ with zipfile.ZipFile(apk) as z:
 assert targets<=found.keys(),'Missing hook targets: '+str(targets-found.keys())
 assert any(n in found['Lcom/miui/home/settings/IconCustomizeFragment;']['methods'] for n in ['onCreate','onCreatePreferences','onResume'])
 assert any(n in found['Lcom/miui/home/launcher/ShortcutInfo;']['methods'] for n in ['getPackageName','getTargetPackage','getIntent','getComponentName'])
+assert {'setIconDrawable','getIconDrawable','applyCompoundDrawables','getShortcutInfo'}<=set(found['Lcom/miui/home/launcher/ShortcutIcon;']['methods'])
 print(json.dumps(found,indent=2))

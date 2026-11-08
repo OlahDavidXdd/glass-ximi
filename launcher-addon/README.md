@@ -18,9 +18,11 @@ A successful preview does not establish that launcher wallpaper capture works on
 ## Enable in Kashi
 
 1. Enable the add-on in LSPosed, scoped only to **System launcher (`com.miui.home`)**.
-2. Restart the launcher after unlocking the phone.
-3. Open **Home screen settings → Icons → Glass icons (devarix)** or the standalone app.
-4. Select **Liquid Glass** or **Frosted Glass**, enable **Use built-in glass icons**, and optionally enable **Backdrop blur**.
+2. Open **devarix Glass → Enable Liquid Glass**. This turns on the icon pack and blur together. It does not enable LSPosed scope for you.
+3. Tap **Restart launcher**, allow root for **devarix Glass**, then open the home screen. This restarts only `com.miui.home` for the current user without clearing its data. If root is denied, reboot the phone.
+4. Return to **devarix Glass → Launcher status**. The binding counts show supported icon views, resolved mappings and replaced drawables. **Check launcher connection** requests a fresh settings read; open the home screen and return to see the result.
+
+If 0.2.0 stayed on “Waiting for mapped icons to bind”, update to 0.3.0. The old hook only handled `LauncherIconImageView`; Kashi also draws its main icons through the `ShortcutIcon` TextView. This release supports that path without rasterizing the live glass drawable. The wallpaper crop adapter now accounts for its centered top compound icon. Device appearance remains unverified.
 
 Both feature switches are off by default. Turning the icon option off restores the captured original drawables. Applications without a bundled mapping keep their existing icons; activity-specific mappings take priority over package fallbacks, so dialer and contacts activities can retain distinct icons.
 
@@ -32,7 +34,7 @@ If normal wallpaper APIs deny access, the status explains the failure. **Wallpap
 
 Live-wallpaper frames are not captured. Use Frosted Glass/native blur for a live wallpaper. Wallpaper-based refraction does not sample dock/folder overlays or the fully composed screen; crop alignment, special wallpaper scaling, dark-mode dimming and window-level animations may differ. Hardware-driver support and Xiaomi firmware still need physical-device verification.
 
-The root switch is not necessary for the in-app preview. The add-on does not modify system properties, launcher APKs or launcher databases.
+The root switch is not necessary for the in-app preview. The separate **Restart launcher** button requests root only when tapped; its process is time-limited to 25 seconds and targets only the current user’s System launcher. The add-on does not modify system properties, launcher APKs or launcher databases.
 
 ## Validation
 
@@ -42,7 +44,7 @@ Local builds and unit tests passed. Checks cover provider caller restrictions, U
 
 ## Updating the experimental build
 
-These releases use development signing keys. If Android rejects an update from 0.1.0 due to a signature mismatch, uninstall **devarix Glass only**, install 0.2.0, re-enable its LSPosed scope and restart the launcher. Do not uninstall the System launcher.
+These releases use development signing keys. If Android rejects an update due to a signature mismatch, uninstall **devarix Glass only**, install the latest version, re-enable its LSPosed scope and restart the launcher. Do not uninstall the System launcher.
 
 ## Build and inspect
 

@@ -1,21 +1,25 @@
 Developer: **devarix**
 
-## Liquid Glass using the requested repository
+## 0.3.0 — Icon binding fix and launcher restart
 
-- Added **Liquid Glass** and retained **Frosted Glass** as selectable materials inside the Kashi add-on.
-- Uses the actual, unchanged AGSL refraction shader from **QWEA0/Liquid-Glass-Android**, with MIT license and pinned source attribution included.
-- Bundles 700 transparent symbol mappings for the lens and the existing 700 Frosted mappings. Foreground symbols stay sharp and grayscale.
-- Added **Preview Liquid Glass**: drag icons over a striped background using the actual shader, without enabling LSPosed or granting root.
-- Added activity-specific icon lookup and narrower icon layout hooks.
+- Added support for Kashi’s main **ShortcutIcon TextView** drawing path. 0.2.0 only hooked LauncherIconImageView, which can leave the module connected while home/app-drawer icons stay stock.
+- Installs the live Drawable directly in the compound-icon slot to avoid launcher rounding rasterizing the QWEA0 shader; retains the existing ImageView path.
+- Added **Enable Liquid Glass**, clear LSPosed activation steps, **Restart launcher**, and **Check launcher connection**.
+- Status now reports supported icon views, resolved mappings and replaced drawables. Settings reload when returning to the launcher after unlocking.
+- Restart requests root only on tap, targets `com.miui.home` for the current user, times out after 25 seconds, and does not clear launcher data.
+- Keeps both 700-icon sets, the upstream QWEA0 AGSL shader and the in-app preview.
 
-## Launcher requirements and limits
+## Activate
 
-Requires LSPosed scoped to `com.miui.home` for Kashi integration. The lens currently samples **static wallpapers**, not live-wallpaper frames or the fully composed launcher. An optional, explicit root-wallpaper switch is available if normal wallpaper access is denied; it only reads the current user's wallpaper file. Root is not requested while that switch is off.
+1. In LSPosed enable **devarix Glass**, scoped to **System launcher (`com.miui.home`)**.
+2. Open **devarix Glass → Enable Liquid Glass**.
+3. Tap **Restart launcher**, allow root, then open the home screen. Reboot instead if root is denied.
+4. Return to the app and check **Launcher status**. If icons are still stock, report the three binding counts and your exact Kashi version.
 
-**Physical-device rendering is not verified.** Build, unit tests, lint, both asset sets, upstream shader provenance, uniform coverage and APK signature are checked. The preview and status screen report unsupported drivers or denied capture; a successful command is not a device verification.
+Requires Android 13+ and LSPosed. Liquid refraction samples a **static wallpaper**; **Wallpaper access via root** remains a separate opt-in for denied wallpaper reads. Restart permission does not enable wallpaper access.
 
-Install → open **Preview Liquid Glass** → enable the module in LSPosed → restart the launcher → **Icons → Glass icons (devarix)** → select Liquid Glass and enable the pack. Backdrop blur is optional.
+**No physical device verification yet.** Build, unit tests, lint, APK signature, 700 + 700 icon assets and upstream shader provenance are checked. The preview alone does not verify launcher integration.
 
-If updating 0.1.0 fails because of the development signing key, uninstall **devarix Glass only**, install this version, and re-enable its scope. Do not uninstall Kashi/System launcher.
+If an update is rejected due to the development signing key, uninstall **devarix Glass only**, reinstall, re-enable its LSPosed scope and restart. Keep System launcher installed.
 
 Source: https://github.com/OlahDavidXdd/glass-ximi/tree/main/launcher-addon
