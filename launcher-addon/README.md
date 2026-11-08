@@ -1,4 +1,4 @@
-# devarix Glass for Kashi — Liquid Glass 0.2
+# Glass for Kashi
 
 Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
