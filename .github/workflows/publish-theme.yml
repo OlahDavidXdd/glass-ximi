@@ -1,0 +1,23 @@
+name: Publish theme backup
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-theme.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify backup and attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo 'c1c2bd32e530dafb8dcf8304335de20626145a3eeb441d80dfee765b5dea8232  Smoky_Glass_Backup.mtz' | sha256sum --check
+          if ! gh release view smoky-glass-backup-v1 >/dev/null 2>&1; then
+            gh release create smoky-glass-backup-v1 --target main --title 'Smoky Glass Backup' --notes 'Opaque smoky glass backup, including WeaveMask and the App Store-style icon.' --draft
+          fi
+          gh release upload smoky-glass-backup-v1 Smoky_Glass_Backup.mtz --clobber
+          gh release edit smoky-glass-backup-v1 --draft=false
