@@ -22,10 +22,14 @@ public final class GlassProvider extends ContentProvider {
         var prefs = getContext().getSharedPreferences(GlassConfig.PREFS, 0);
         Bundle result = new Bundle();
         if ("settings".equals(method)) {
+            String style=GlassConfig.style(prefs.getString("style","liquid"));
+            result.putString("style",style);
+            result.putBoolean("root_wallpaper",prefs.getBoolean("root_wallpaper",false));
+            try(var stream=getContext().getAssets().open("shaders/qwea0_lens.agsl")){result.putString("shader",new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(IOException e){result.putString("error",e.toString());}
             result.putBoolean("icons", prefs.getBoolean("icons", false));
             result.putBoolean("blur", prefs.getBoolean("blur", false));
             result.putInt("radius", GlassConfig.radius(prefs.getInt("radius", GlassConfig.DEFAULT_RADIUS_DP)));
-            try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list("icons")) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }
+            try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list(GlassConfig.assetDirectory(style))) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }
             catch (IOException e) { result.putString("error", e.toString()); }
         } else if ("report".equals(method)) {
             String status = extras == null ? null : extras.getString("status");
@@ -36,10 +40,13 @@ public final class GlassProvider extends ContentProvider {
     }
     @Override public AssetFileDescriptor openAssetFile(Uri uri, String mode) throws FileNotFoundException {
         enforceCaller();
-        if (!"r".equals(mode) || uri.getPathSegments().size()!=2 || !"icons".equals(uri.getPathSegments().get(0))) throw new FileNotFoundException();
+        if(!"r".equals(mode))throw new FileNotFoundException();
+        if(uri.getPathSegments().size()==1&&"plate".equals(uri.getLastPathSegment())){try{return getContext().getAssets().openFd("liquid_plate.png");}catch(IOException e){throw new FileNotFoundException();}}
+        if(uri.getPathSegments().size()!=3||!"icons".equals(uri.getPathSegments().get(0)))throw new FileNotFoundException();
+        String style=uri.getPathSegments().get(1);if(!GlassConfig.validStyle(style))throw new FileNotFoundException("Invalid style");
         String pkg=uri.getLastPathSegment();
         if (!GlassConfig.validPackage(pkg)) throw new FileNotFoundException("Invalid package");
-        try { return getContext().getAssets().openFd("icons/"+pkg+".png"); }
+        try { return getContext().getAssets().openFd(GlassConfig.assetDirectory(style)+"/"+pkg+".png"); }
         catch (IOException e) { throw new FileNotFoundException(pkg); }
     }
     @Override public Cursor query(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder) { enforceCaller();return new MatrixCursor(new String[]{"status"}); }

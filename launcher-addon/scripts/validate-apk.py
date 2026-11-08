@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import hashlib,json,struct,sys,zipfile,xml.etree.ElementTree as ET
+import hashlib,json,struct,sys,zipfile,re,xml.etree.ElementTree as ET
 from pathlib import Path
 root=Path(__file__).resolve().parents[1];apk=Path(sys.argv[1]);report={}
 with zipfile.ZipFile(apk) as z:
@@ -9,6 +9,19 @@ with zipfile.ZipFile(apk) as z:
   assert z.getinfo(name).compress_type==zipfile.ZIP_STORED,name
   data=z.read(name);assert data==(root/'app/src/main'/name).read_bytes(),name
   assert struct.unpack_from('>II',data,16)==(512,512),name
+ glyphs=[n for n in z.namelist() if n.startswith('assets/glyphs/') and n.endswith('.png')];assert len(glyphs)==700
+ assert {Path(n).name for n in names}=={Path(n).name for n in glyphs}
+ for name in glyphs:
+  assert z.getinfo(name).compress_type==zipfile.ZIP_STORED,name
+  data=z.read(name);assert data==(root/'app/src/main'/name).read_bytes(),name
+  assert struct.unpack_from('>II',data,16)==(512,512),name
+ upstream=json.loads((root/'compatibility/liquidglass-upstream.json').read_text())
+ shader=z.read('assets/shaders/qwea0_lens.agsl');assert hashlib.sha256(shader).hexdigest()==upstream['extracted_shader_sha256']
+ assert b'pandadog' in z.read('assets/licenses/Liquid-Glass-Android-MIT.txt')
+ expected=set(re.findall(r'uniform\s+float[234]?\s+(\w+)',shader.decode()))
+ actual=set(re.findall(r'setFloatUniform\("([^"]+)"',(root/'app/src/main/java/io/github/devarix/kashiglass/LiquidGlassDrawable.java').read_text()))
+ assert expected==actual,(expected-actual,actual-expected)
+ report.update(liquid_glyphs=700,qwea0_shader_unmodified=True,shader_uniforms_complete=True)
  assert z.read('assets/xposed_init').decode().strip()=='io.github.devarix.kashiglass.GlassHook'
  report.update(icon_mappings=700,source_assets_match=True,asset_descriptors_supported=True,apk_sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
 unit=ET.parse(root/'app/build/test-results/testDebugUnitTest/TEST-io.github.devarix.kashiglass.GlassConfigTest.xml').getroot()

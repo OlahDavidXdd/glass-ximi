@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/QWEA0/Liquid-Glass-Android",
+  "commit": "16afe4d8b5d08a370d3f8c50b08d7f5c6eb5da4d",
+  "source": "liquidglass/src/main/java/com/example/liquidglass/GlassLensRenderer.kt",
+  "extracted_shader_sha256": "e82c52c69f8ecabce7c33e71fc8d1cb825ea88d33886ba0f860604316d44703d",
+  "changes": "AGSL shader unchanged; new Java drawable and static-wallpaper capture adapter; grayscale with dispersion disabled."
+}

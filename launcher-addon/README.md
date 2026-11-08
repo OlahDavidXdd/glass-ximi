@@ -1,53 +1,64 @@
-# devarix Glass for Kashi
+# devarix Glass for Kashi — Liquid Glass 0.2
 
-An experimental, optional LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. It bundles the 700 gray glass icon mappings from the theme project and calls Xiaomi's native per-view background-blur APIs behind the icon images.
+Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
-This is new add-on source code. It is **not** Kashi's launcher source and does not replace or re-sign the launcher APK. Kashi's public repository currently contains documentation and release binaries.
+## Materials
 
-## Install and enable
+- **Liquid Glass** uses the actual SDF/refraction shader from [QWEA0/Liquid-Glass-Android](https://github.com/QWEA0/Liquid-Glass-Android), pinned at `16afe4d8b5d08a370d3f8c50b08d7f5c6eb5da4d`. The AGSL shader is unchanged. A Java Drawable adapter supplies wallpaper pixels and draws the silver foreground symbols separately. Grayscale is retained and chromatic dispersion is disabled.
+- **Frosted Glass** retains the previous 75%-opacity icon pack and the Xiaomi native background-blur calls.
 
-1. Install the signed experimental add-on APK from this repository's release.
-2. Enable **devarix Glass** in LSPosed and scope it only to **System launcher (`com.miui.home`)**.
-3. Restart the launcher after unlocking the phone.
-4. Open **Home screen settings → Icons → Glass icons (devarix)**. The same controls are also in the standalone **devarix Glass** app.
-5. Enable **Use built-in glass icons**, then **Frosted backdrop**. Start with a blur radius of 24 dp.
+This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
-Both switches are off by default. Switching the icon option off restores the drawable captured from the launcher. The icon asset pack uses 75% background opacity and neutral grayscale pixels. Applications outside the bundled package mappings keep their existing icons.
+## Preview before activating
 
-## Important validation limit
+Install the APK and open **devarix Glass → Preview Liquid Glass**. Drag an icon over the striped background. This screen runs the actual AGSL shader in the app; it needs Android 13+ and hardware acceleration, but no root or LSPosed activation. A driver failure is reported and the static fallback is identified.
 
-The launcher hook targets and package lookup methods have been checked against the published Kashi V7.5 APK. An APK build and unit tests do **not** establish that Xiaomi's native blur actually renders on a particular phone. HyperOS firmware, system blur settings, renderer limits, LSPosed compatibility and other launcher modules can affect it. This project has not yet been tested on a physical HyperOS phone.
+A successful preview does not establish that launcher wallpaper capture works on the phone.
 
-The settings screen reports whether the native method calls succeeded or failed. A successful call is not a visual verification. If unsupported, the module keeps the icon pack available and reports that native blur is unavailable; it does not substitute a fake blurred wallpaper image.
+## Enable in Kashi
 
-If the launcher behaves incorrectly, disable this add-on in LSPosed and restart the launcher. No system properties, launcher APKs or launcher databases are modified.
+1. Enable the add-on in LSPosed, scoped only to **System launcher (`com.miui.home`)**.
+2. Restart the launcher after unlocking the phone.
+3. Open **Home screen settings → Icons → Glass icons (devarix)** or the standalone app.
+4. Select **Liquid Glass** or **Frosted Glass**, enable **Use built-in glass icons**, and optionally enable **Backdrop blur**.
 
-## Implementation
+Both feature switches are off by default. Turning the icon option off restores the captured original drawables. Applications without a bundled mapping keep their existing icons; activity-specific mappings take priority over package fallbacks, so dialer and contacts activities can retain distinct icons.
 
-- Adds an ordinary preference to `com.miui.home.settings.IconCustomizeFragment` linking to the add-on controls.
-- Intercepts the standard `ImageView.setImageDrawable` path for `com.miui.home.icon.LauncherIconImageView` only.
-- Resolves application packages from bound shortcut data, checks the bundled mapping, loads images off the UI thread, and bounds the bitmap cache to 32 MiB.
-- Applies `View.setMiBackgroundBlurMode`, `setMiBackgroundBlurRadius` and `setMiViewBlurMode`, with rounded outline clipping. It does not blur the foreground symbol.
-- Uses an exported asset/settings provider restricted by calling UID to the add-on itself and `com.miui.home`. The APK requests no Internet permission.
+## Wallpaper capture and limits
 
-## Build
+Android draws the home wallpaper in a separate surface. The QWEA0 library's usual parent-View capture cannot simply be dropped into the launcher to capture that surface. This adapter samples the current **static wallpaper**, tracks launcher wallpaper-offset calls and icon position changes, and feeds it to the upstream shader. The lens pipeline uses a GPU blur effect when enabled; the foreground glyph is not blurred.
+
+If normal wallpaper APIs deny access, the status explains the failure. **Wallpaper access via root** is a separate opt-in switch, off by default. Only when selected may the launcher request `su` access to read `/data/system/users/<current-user>/wallpaper`. Reads are time-limited and size-limited; wallpaper pixels stay in launcher memory and are not exported through the asset provider or uploaded. Disabling the feature cancels a pending root process.
+
+Live-wallpaper frames are not captured. Use Frosted Glass/native blur for a live wallpaper. Wallpaper-based refraction does not sample dock/folder overlays or the fully composed screen; crop alignment, special wallpaper scaling, dark-mode dimming and window-level animations may differ. Hardware-driver support and Xiaomi firmware still need physical-device verification.
+
+The root switch is not necessary for the in-app preview. The add-on does not modify system properties, launcher APKs or launcher databases.
+
+## Validation
+
+Local builds and unit tests passed. Checks cover provider caller restrictions, URI/material validation, current-user wallpaper paths, blur bounds, activity-specific icon selection, both sets of 700 assets, upstream shader provenance and uniform coverage. Android lint completes without errors. APK signatures are verified during release publishing.
+
+**No physical HyperOS device has verified this build yet.** Status messages distinguish capture failures and shader/driver failures; submitting render commands is not a visual verification. Disable the add-on in LSPosed and restart the launcher if it behaves incorrectly.
+
+## Updating the experimental build
+
+These releases use development signing keys. If Android rejects an update from 0.1.0 due to a signature mismatch, uninstall **devarix Glass only**, install 0.2.0, re-enable its LSPosed scope and restart the launcher. Do not uninstall the System launcher.
+
+## Build and inspect
 
 Use JDK 17, Android SDK platform 35 and Build Tools 35.0.0:
 
 ```sh
-./gradlew :app:testDebugUnitTest :app:assembleDebug
-```
-
-The experimental APK is signed with the standard local debug signing configuration. Do not treat it as a production-tested launcher replacement. The Xposed API is a compile-only dependency from its official Maven repository; it is not bundled into the module.
-
-Compatibility inspection can be repeated against a locally obtained launcher APK:
-
-```sh
+./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
 python3 scripts/verify-kashi.py /path/to/MiuiHome.apk
 ```
 
-## Credits and license
+The Xposed API is compile-only, from its official Maven repository. No Internet permission is requested. Asset/settings IPC is restricted by calling UID to the add-on itself and `com.miui.home`. Image decoding runs off the UI thread; the bitmap cache is bounded to 32 MiB. Layout listeners are attached to icon views rather than hooking every View's layout method. The lens watches icon pose changes while visible; device performance has not been benchmarked.
 
-Developer: **devarix**. Launcher compatibility target: [Kashi / Mods Center](https://github.com/Mods-Center/HyperOS-Launcher).
+## Credits
 
-New add-on code is MIT licensed. The bundled artwork retains its original attribution and is not relicensed by the code license: base icon symbols from Guofeng 26 Lite Edition by **一凡UI**, additions using [Simple Icons](https://github.com/simple-icons/simple-icons), [Shizuku](https://github.com/RikkaApps/Shizuku), [MicroG RE](https://github.com/MorpheApp/MicroG-RE), and custom glass assets. See the parent theme repository's source notes for the icon pack history.
+Developer: **devarix**. Target launcher: [Kashi / Mods Center](https://github.com/Mods-Center/HyperOS-Launcher).
+
+Lens shader: **pandadog / QWEA0**, MIT; see `app/src/main/assets/licenses/Liquid-Glass-Android-MIT.txt` and `compatibility/liquidglass-upstream.json`.
+
+New adapter code is MIT licensed. Artwork is not relicensed by that code license: base icon symbols are from Guofeng 26 Lite Edition by **一凡UI**, with additions from [Simple Icons](https://github.com/simple-icons/simple-icons), [Shizuku](https://github.com/RikkaApps/Shizuku), [MicroG RE](https://github.com/MorpheApp/MicroG-RE), and custom glass assets.

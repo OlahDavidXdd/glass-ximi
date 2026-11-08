@@ -1,4 +1,4 @@
-**Experimental Kashi launcher add-on:** [APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.1.0) · [Buildable source](launcher-addon). Adds an optional glass icon pack and Xiaomi native background-blur calls through LSPosed. Root required; physical-device blur testing is pending.
+**Experimental Kashi launcher add-on:** [APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.2.0) · [Buildable source](launcher-addon). Adds selectable Liquid Glass (QWEA0 shader) and Frosted icon styles through LSPosed, plus an in-app shader preview. Root required; physical-device blur testing is pending.
 
 # Smoky Glass Frosted Gray v6
 

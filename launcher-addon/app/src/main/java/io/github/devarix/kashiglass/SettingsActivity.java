@@ -18,18 +18,23 @@ public final class SettingsActivity extends Activity {
         ScrollView scroll=new ScrollView(this);LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int pad=dp(24);page.setPadding(pad,pad,pad,pad);scroll.addView(page);setContentView(scroll);
         text(page,"devarix Glass",30,Color.WHITE);text(page,"For Kashi launcher · HyperOS 3",16,0xffcccccc);
         text(page,"Enable this module in LSPosed, scope it to System launcher (com.miui.home), then restart the launcher. The same controls are available from its Icons settings entry.",15,0xffcccccc);
-        toggle(page,"Use built-in glass icons","700 grayscale mappings · 512 px · 75% background opacity","icons");
-        toggle(page,"Frosted backdrop","Use Xiaomi native background blur behind the glass icons. Requires compatible firmware.","blur");
-        TextView radius=text(page,"Blur radius: "+GlassConfig.radius(prefs.getInt("radius",24))+" dp",18,Color.WHITE);
+        text(page,"Material",18,Color.WHITE);
+        Spinner material=new Spinner(this);material.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Liquid Glass · QWEA0 renderer","Frosted Glass · previous style"}));material.setSelection("frosted".equals(GlassConfig.style(prefs.getString("style","liquid")))?1:0);page.addView(material);
+        material.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){} public void onItemSelected(AdapterView<?> p,android.view.View v,int position,long id){String style=position==0?"liquid":"frosted";if(!style.equals(GlassConfig.style(prefs.getString("style","liquid")))){prefs.edit().putString("style",style).commit();changed();}}});
+        toggle(page,"Use built-in glass icons","700 grayscale mappings · 512 px symbols · Liquid or Frosted material","icons");
+        toggle(page,"Backdrop blur","Liquid Glass uses the QWEA0 shader; Frosted Glass uses Xiaomi native blur.","blur");
+        toggle(page,"Wallpaper access via root","Optional. If normal wallpaper access is denied, requests root for System launcher to read the current static wallpaper only.","root_wallpaper");
+        Button preview=new Button(this);preview.setText("Preview Liquid Glass");page.addView(preview);preview.setOnClickListener(v->startActivity(new Intent(this,PreviewActivity.class)));
+        TextView radius=text(page,"Blur strength: "+GlassConfig.radius(prefs.getInt("radius",24))+"",18,Color.WHITE);
         SeekBar seek=new SeekBar(this);seek.setMax(52);seek.setProgress(GlassConfig.radius(prefs.getInt("radius",24))-8);page.addView(seek);
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-            public void onProgressChanged(SeekBar bar,int value,boolean user){radius.setText("Blur radius: "+(value+8)+" dp");}
+            public void onProgressChanged(SeekBar bar,int value,boolean user){radius.setText("Blur strength: "+(value+8)+"");}
             public void onStartTrackingTouch(SeekBar bar){}
             public void onStopTrackingTouch(SeekBar bar){prefs.edit().putInt("radius",bar.getProgress()+8).commit();changed();}
         });
         text(page,"Launcher status",18,Color.WHITE);status=text(page,"",14,0xffcccccc);updateStatus();
-        text(page,"Experimental build. Native APIs and hooks were checked against Kashi V7.5; a device test is still required. If blur is unavailable, it will not be replaced by a fake blur image.",14,0xffb8b8b8);
-        text(page,"Developer: devarix\nOriginal base symbols: 一凡UI / Guofeng 26 Lite. Additional icon sources are listed in the source repository.",13,0xffaaaaaa);
+        text(page,"Experimental build. Hooks were checked against Kashi V7.5. Liquid Glass currently samples static wallpapers; live wallpapers need the native Frosted mode. A device test is still required. If blur is unavailable, it will not be replaced by a fake blur image.",14,0xffb8b8b8);
+        text(page,"Developer: devarix\nOriginal base symbols: 一凡UI / Guofeng 26 Lite. Liquid Glass renderer: QWEA0 / pandadog (MIT). Additional icon sources are listed in the source repository.",13,0xffaaaaaa);
         getContentResolver().registerContentObserver(android.net.Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),false,observer);
     }
     private void changed(){getContentResolver().notifyChange(GlassProvider.SETTINGS,null);}
