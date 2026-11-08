@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Assistant",
+    "packages": [
+      "com.google.android.apps.googleassistant",
+      "com.google.android.apps.assistant"
+    ]
+  },
+  {
+    "name": "Files",
+    "packages": [
+      "com.google.android.documentsui",
+      "com.android.documentsui",
+      "com.google.android.apps.nbu.files"
+    ]
+  },
+  {
+    "name": "Gemini",
+    "packages": [
+      "com.google.android.apps.bard"
+    ]
+  },
+  {
+    "name": "Gmail",
+    "packages": [
+      "com.google.android.gm"
+    ]
+  },
+  {
+    "name": "Google",
+    "packages": [
+      "com.google.android.googlequicksearchbox"
+    ]
+  },
+  {
+    "name": "Instagram",
+    "packages": [
+      "com.instagram.android"
+    ]
+  },
+  {
+    "name": "Maps",
+    "packages": [
+      "com.google.android.apps.maps"
+    ]
+  },
+  {
+    "name": "MicroG RE",
+    "packages": [
+      "app.revanced.android.gms",
+      "app.morphe.android.gms",
+      "com.mgoogle.android.gms",
+      "org.microg.gms",
+      "com.google.android.gms"
+    ]
+  },
+  {
+    "name": "Nekogram",
+    "packages": [
+      "tw.nekomimi.nekogram",
+      "tw.nekomimi.nekogram.beta",
+      "nekox.messenger"
+    ]
+  },
+  {
+    "name": "Shizuku",
+    "packages": [
+      "moe.shizuku.privileged.api"
+    ]
+  },
+  {
+    "name": "Threads",
+    "packages": [
+      "com.instagram.barcelona"
+    ]
+  },
+  {
+    "name": "TikTok",
+    "packages": [
+      "com.zhiliaoapp.musically",
+      "com.ss.android.ugc.trill",
+      "com.zhiliaoapp.musically.go"
+    ]
+  },
+  {
+    "name": "ZArchiver",
+    "packages": [
+      "ru.zdevs.zarchiver",
+      "ru.zdevs.zarchiver.pro"
+    ]
+  }
+]

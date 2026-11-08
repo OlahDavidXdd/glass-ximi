@@ -1,0 +1,24 @@
+name: Publish Gray HD expanded theme
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-expanded.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble verified theme and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat gray-hd-v4/Smoky_Glass_Gray_HD_v4.mtz.part-* > Smoky_Glass_Gray_HD_v4.mtz
+          echo '55db93e9b3a9325e8627e6e010b4d22e447bda02d6691c55189d0f31e62ab3c2  Smoky_Glass_Gray_HD_v4.mtz' | sha256sum --check
+          if ! gh release view gray-hd-v4 >/dev/null 2>&1; then
+            gh release create gray-hd-v4 --target main --title 'Smoky Glass Gray HD v4 — devarix' --notes-file gray-hd-v4/release-notes.md --draft
+          fi
+          gh release upload gray-hd-v4 Smoky_Glass_Gray_HD_v4.mtz Smoky_Glass_Solid_Gray_Preview.jpg Smoky_Glass_Gray_HD_Detail.jpg Smoky_Glass_Gray_HD_Apps_v4.jpg --clobber
+          gh release edit gray-hd-v4 --draft=false --notes-file gray-hd-v4/release-notes.md
