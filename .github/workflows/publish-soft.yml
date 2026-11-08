@@ -1,0 +1,24 @@
+name: Publish Soft Gray theme
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-soft.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble verified theme and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat gray-hd-v5/Smoky_Glass_Soft_Gray_HD_v5.mtz.part-* > Smoky_Glass_Soft_Gray_HD_v5.mtz
+          echo '474f07bfc1b4220c5fefd7d8af77e499901c196dec63d14e442f1d7a7ee6278e  Smoky_Glass_Soft_Gray_HD_v5.mtz' | sha256sum --check
+          if ! gh release view gray-hd-v5 >/dev/null 2>&1; then
+            gh release create gray-hd-v5 --target main --title 'Smoky Glass Soft Gray v5 — devarix' --notes-file gray-hd-v5/release-notes.md --draft
+          fi
+          gh release upload gray-hd-v5 Smoky_Glass_Soft_Gray_HD_v5.mtz Smoky_Glass_Soft_Gray_Preview.jpg Smoky_Glass_Soft_Gray_Detail.jpg Smoky_Glass_Soft_Gray_Apps_v5.jpg --clobber
+          gh release edit gray-hd-v5 --draft=false --notes-file gray-hd-v5/release-notes.md
