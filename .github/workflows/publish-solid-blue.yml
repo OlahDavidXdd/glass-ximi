@@ -1,0 +1,23 @@
+name: Publish solid blue theme
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-solid-blue.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify backup and attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo '9bee047fcbe119572e6557ddc2938fa6f8f303d36538c076ade848411b4379ea  Smoky_Glass_Solid_Blue_v2.mtz' | sha256sum --check
+          if ! gh release view solid-blue-v2 >/dev/null 2>&1; then
+            gh release create solid-blue-v2 --target main --title 'Smoky Glass Solid Blue v2' --notes 'Uniform opaque blue-gray icon pack with 674 app icons, a matching weather icon, WeaveMask, App Store-style Play Store symbol and embedded previews. Control center overlays removed; status bar styling retained. Not tested on-device.' --draft
+          fi
+          gh release upload solid-blue-v2 Smoky_Glass_Solid_Blue_v2.mtz Smoky_Glass_Solid_Blue_Preview.jpg --clobber
+          gh release edit solid-blue-v2 --draft=false

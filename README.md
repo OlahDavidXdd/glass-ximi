@@ -1,9 +1,18 @@
 # Xiaomi Smoky Glass
 
-[Download Smoky_Glass_Backup.mtz](https://github.com/OlahDavidXdd/glass-ximi/raw/refs/heads/main/Smoky_Glass_Backup.mtz)
+## Solid Blue v2
 
-If your browser opens the file page, choose **Download raw file**.
+[Download the latest MTZ](https://github.com/OlahDavidXdd/glass-ximi/releases/download/solid-blue-v2/Smoky_Glass_Solid_Blue_v2.mtz)
 
-This backup includes opaque smoky glass icons, the App Store-style Play Store icon, and WeaveMask support. It is the version before the stronger refraction treatment.
+- 674 opaque blue-gray app icons with silver symbols.
+- Matching weather icon, WeaveMask support, and App Store-style Play Store symbol.
+- Embedded icon previews rendered from the included assets.
+- Control center overlays removed; status bar styling retained.
 
-Based on Guofeng 26 Lite Edition by 一凡UI. Original creator credits remain in the theme. Installation has not been tested on a Xiaomi device.
+![Included icon preview](Smoky_Glass_Solid_Blue_Preview.jpg)
+
+## Previous backup
+
+[Download the previous backup](https://github.com/OlahDavidXdd/glass-ximi/releases/download/smoky-glass-backup-v1/Smoky_Glass_Backup.mtz)
+
+Based on Guofeng 26 Lite Edition by 一凡UI. Original creator metadata is preserved in the theme. Archive contents validated; installation has not been tested on a Xiaomi device.
