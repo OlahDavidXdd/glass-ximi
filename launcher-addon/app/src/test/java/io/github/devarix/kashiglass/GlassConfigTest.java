@@ -26,6 +26,17 @@ public class GlassConfigTest {
         assertEquals("com.android.contacts.activities.TwelveKeyDialer",GlassConfig.mapping("com.android.contacts","com.android.contacts.activities.TwelveKeyDialer",names));
         assertEquals("com.android.contacts",GlassConfig.mapping("com.android.contacts","other.Activity",names));assertNull(GlassConfig.mapping("not.mapped",null,names));
     }
+    @Test public void automaticArtworkDoesNotOverrideCuratedMappings(){
+        var names=java.util.Set.of("com.example.known");
+        assertEquals("com.example.known",GlassConfig.iconKey("com.example.known","com.example.known.Main",names,true));
+        assertEquals("auto:com.example.newapp:com.example.newapp.Main",GlassConfig.iconKey("com.example.newapp","com.example.newapp.Main",names,true));
+        assertNull(GlassConfig.iconKey("com.example.newapp",null,names,false));
+    }
+    @Test public void automaticKeysDoNotTurnInvalidPackagesIntoAssets(){
+        assertNull(GlassConfig.iconKey("../private",null,java.util.Set.of(),true));
+        assertTrue(GlassConfig.automaticKey("auto:com.example.app:"));
+        assertFalse(GlassConfig.automaticKey("com.example.app"));
+    }
     @Test public void radiusStaysWithinAUsefulBound() {
         assertEquals(8,GlassConfig.radius(-1)); assertEquals(60,GlassConfig.radius(200)); assertEquals(24,GlassConfig.radius(24));
     }

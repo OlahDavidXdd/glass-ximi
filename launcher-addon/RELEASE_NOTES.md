@@ -1,22 +1,22 @@
 Developer: **devarix**
 
-## 0.3.1 diagnostic test build
+## 0.4.0 — Stronger Liquid Glass, transitions and automatic icons
 
-- Adds **Diagnostic logging**, on by default, plus **Export logs (.txt)**, **Copy logs** and **Clear logs**.
-- Records startup/hook targets, settings reads, sampled icon mappings and tag classes, successful/failed asset decoding, binding counts, capture/render status, restart outcomes and caught hook exceptions.
-- Export includes device/Android/launcher/add-on versions and current settings, even if the launcher never connects.
-- Keeps at most two 64 KiB private log segments and uses a bounded launcher logging queue. No Internet permission, automatic upload, wallpaper images or system logcat collection.
-- Retains 0.3.0's Kashi ShortcutIcon drawing fix and restart/activation controls. The normal 0.3.0 release remains available.
+- Stronger QWEA0 refraction with a wider optical bevel, brighter silver highlights, curved surface reflections and an inner rim. Reduced blur hides less of the distortion. No blue tint or chromatic dispersion.
+- Replaces icons synchronously during Kashi binding and compound drawing to avoid a posted stock frame.
+- Supplies independent glass snapshots through known opening/closing animation getters and cached ShortcutInfo icon requests. Snapshots are prepared on touch and bounded to 8 MiB. GPU readback uses public Android APIs; a static glass snapshot is the fallback. This aims to fix the reported flash but still needs your phone test.
+- Adds **Automatic glass icons**, on by default. Unmapped apps use adaptive monochrome/foreground artwork or a cleaned silver rendering of their existing icon. Curated mappings always win. Complex images may remain inset grayscale tiles.
+- Recycled drawer cells wait for their matching source artwork before generating a new fallback. Temporary settings IPC failure retains the last working configuration.
+- Keeps **Restart launcher**, **Export logs**, **Copy logs**, **Clear logs**, both curated asset sets and the live shader preview.
 
-## Test and send logs
+## Apply and test
 
-1. Enable **devarix Glass** in LSPosed, scoped to **System launcher (`com.miui.home`)**.
-2. In devarix Glass, keep **Diagnostic logging** on; tap **Clear logs → Enable Liquid Glass → Restart launcher** and allow root.
-3. Open home and the app drawer to reproduce the bug.
-4. Return to the app, tap **Export logs (.txt)**, save the file and attach it to the chat/bug report. Use **Copy logs** if your ROM has no file picker.
+Install the APK, keep LSPosed scope set to **System launcher (`com.miui.home`)**, then open **devarix Glass → Enable Liquid Glass → Restart launcher**. **Automatic glass icons** starts on; it can be disabled independently.
 
-Logs include sampled app package names and device model; export/copy only when you choose. Logging can be disabled and retained entries cleared. A missing launcher connection may need the relevant LSPosed module error as well.
+Check an unlisted app, then open and close a few apps using both gesture and button navigation if available. If a stock flash remains, use **Clear logs → Restart launcher**, reproduce it, then **Export logs (.txt)** and send the file with the affected app and exact launcher version.
 
-Build, unit tests, lint, icon assets, shader provenance and APK signature are checked. **Physical-device behavior is not yet verified.** This is a prerelease for debugging, not a verified stable build.
+Liquid refraction still samples the current static wallpaper. Animation snapshots are static; they do not refract app-window contents. First-time glyph generation and snapshot capture have not been benchmarked on the phone. Prior releases remain available as backups.
 
-If Android rejects the update because of the development signing key, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.
+Build, tests, lint, signature, asset and shader-provenance checks are included. **New 0.4.0 behavior has not yet been verified on a physical device.**
+
+If Android rejects the development-key update, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.

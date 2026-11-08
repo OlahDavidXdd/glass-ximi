@@ -1,3 +1,5 @@
+**Latest Liquid Glass test:** [0.4.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.4.0-test) · Stronger refraction, animation snapshots, automatic icons and diagnostic logs.
+
 **Logging test build:** [0.3.1 test APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.1-test) · Includes Export logs, Copy logs and Clear logs.
 
 **Experimental Kashi launcher add-on:** [APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.0) · [Buildable source](launcher-addon). Adds selectable Liquid Glass (QWEA0 shader) and Frosted icon styles through LSPosed, plus an in-app shader preview, one-tap activation, launcher restart and icon binding diagnostics. Root required; physical-device blur testing is pending.

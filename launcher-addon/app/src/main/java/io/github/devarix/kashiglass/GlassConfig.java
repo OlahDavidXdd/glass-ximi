@@ -15,6 +15,12 @@ public final class GlassConfig {
         if(activity!=null&&available.contains(activity))return activity;
         return pkg!=null&&available.contains(pkg)?pkg:null;
     }
+    public static String iconKey(String pkg,String activity,java.util.Set<String> available,boolean automatic){
+        String mapped=mapping(pkg,activity,available);
+        if(mapped!=null)return mapped;
+        return automatic&&validPackage(pkg)?"auto:"+pkg+":"+(activity==null?"":activity):null;
+    }
+    public static boolean automaticKey(String key){return key!=null&&key.startsWith("auto:");}
     public static int radius(int value) { return Math.max(8, Math.min(60, value)); }
     public static boolean validPackage(String value) {
         if ("android".equals(value)) return true;

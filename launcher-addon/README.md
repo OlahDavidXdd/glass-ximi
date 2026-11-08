@@ -9,9 +9,19 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Liquid Glass test build (0.4.0)
+
+[Download 0.4.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.4.0-test). Adds stronger optical refraction, broader silver bevels, curved highlights and finer inner edge reflections. Blur is lighter so the lens distortion is more visible; icons remain grayscale.
+
+**Automatic glass icons** is on by default. The 700 bundled mappings take priority. Unmapped app icons are converted locally into silver glyphs using adaptive monochrome/foreground layers where available. Flat edge-connected backgrounds are removed when safe; complex artwork keeps its silhouette or an inset gray tile. This is automatic styling of the app's own artwork, not a hand-drawn replacement. It runs once on demand and uses a bounded bitmap cache, with no package scan, downloads or storage permission. Restart the launcher after an app icon changes to regenerate its cached variant. Turning this switch off restores the existing behavior for unmapped apps.
+
+The bind hook now replaces the drawable synchronously before compound drawing. Known Kashi animation getters (`getContentDrawable`, `getBackAnimPreviewDrawable`, `getBoomAnimBitmap`) and cached model icon requests receive standalone glass snapshots rather than the stock original or the live drawable. A snapshot is prepared on touch and reused from an 8 MiB cache. The public HardwareRenderer/ImageReader path captures the lens where supported; a glass plate/glyph snapshot is used if GPU readback is unavailable. Snapshot capture is static during the transition and initial capture may add work to the first touch. The live icon remains tied to its own view; animation code cannot steal its callback or bounds. This targets the observed stock flash; a device check must confirm every ROM-specific transition path. Transient settings IPC failure keeps the last working configuration.
+
+Diagnostic export/copy/clear controls remain available. The normal 0.3.0 release and 0.3.1 logging build are retained as backups. These new changes pass build checks but have not yet been verified on the phone.
+
 ## Diagnostic test build (0.3.1)
 
-[Download the logging test build](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.1-test). It updates the same add-on package and keeps the 0.3.0 glass behavior.
+[Download the logging test build](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.1-test). This earlier build updates the same add-on package and keeps the 0.3.0 glass behavior.
 
 Diagnostic logging is on by default in this test build. To report a problem:
 
@@ -38,7 +48,7 @@ A successful preview does not establish that launcher wallpaper capture works on
 
 If 0.2.0 stayed on “Waiting for mapped icons to bind”, update to 0.3.0. The old hook only handled `LauncherIconImageView`; Kashi also draws its main icons through the `ShortcutIcon` TextView. This release supports that path without rasterizing the live glass drawable. The wallpaper crop adapter now accounts for its centered top compound icon. Device appearance remains unverified.
 
-Both feature switches are off by default. Turning the icon option off restores the captured original drawables. Applications without a bundled mapping keep their existing icons; activity-specific mappings take priority over package fallbacks, so dialer and contacts activities can retain distinct icons.
+Both feature switches are off by default. Turning the icon option off restores the captured original drawables. With Automatic glass icons disabled, applications without a bundled mapping keep their existing icons; activity-specific mappings take priority over package fallbacks, so dialer and contacts activities can retain distinct icons.
 
 ## Wallpaper capture and limits
 

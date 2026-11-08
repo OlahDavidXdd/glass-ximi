@@ -19,6 +19,19 @@
         "onCreatePreferences",
         "onResume"
       ]
+    },
+    "Lcom/miui/home/launcher/ShortcutIcon;": {
+      "superclass": "Landroid/widget/TextView;",
+      "binding_methods": [
+        "setIconDrawable",
+        "setOriginalDrawableAndRoundedDrawable",
+        "applyCompoundDrawables",
+        "getContentDrawable",
+        "getBackAnimPreviewDrawable",
+        "getBoomAnimBitmap",
+        "onTouchEvent",
+        "setTag"
+      ]
     }
   },
   "device_blur_verified": false

@@ -25,6 +25,7 @@ public final class GlassProvider extends ContentProvider {
             prefs.edit().putLong("connected_at",System.currentTimeMillis()).apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
+            result.putBoolean("automatic",prefs.getBoolean("automatic",true));
             result.putBoolean("debug_logs",prefs.getBoolean("debug_logs",true));
             DebugLog.event(getContext(),"SETTINGS_READ","caller="+Binder.getCallingUid()+" style="+style+" icons="+prefs.getBoolean("icons",false)+" blur="+prefs.getBoolean("blur",false));
             result.putBoolean("root_wallpaper",prefs.getBoolean("root_wallpaper",false));

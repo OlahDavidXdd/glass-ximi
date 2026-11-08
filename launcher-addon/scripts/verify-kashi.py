@@ -32,5 +32,5 @@ with zipfile.ZipFile(apk) as z:
 assert targets<=found.keys(),'Missing hook targets: '+str(targets-found.keys())
 assert any(n in found['Lcom/miui/home/settings/IconCustomizeFragment;']['methods'] for n in ['onCreate','onCreatePreferences','onResume'])
 assert any(n in found['Lcom/miui/home/launcher/ShortcutInfo;']['methods'] for n in ['getPackageName','getTargetPackage','getIntent','getComponentName'])
-assert {'setIconDrawable','getIconDrawable','applyCompoundDrawables','getShortcutInfo'}<=set(found['Lcom/miui/home/launcher/ShortcutIcon;']['methods'])
+assert {'setIconDrawable','getIconDrawable','applyCompoundDrawables','getShortcutInfo','setOriginalDrawableAndRoundedDrawable','getContentDrawable','getBackAnimPreviewDrawable','getBoomAnimBitmap','onTouchEvent'}<=set(found['Lcom/miui/home/launcher/ShortcutIcon;']['methods'])
 print(json.dumps(found,indent=2))
