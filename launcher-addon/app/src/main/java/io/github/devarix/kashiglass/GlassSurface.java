@@ -1,7 +1,7 @@
 package io.github.devarix.kashiglass;
 
 final class GlassSurface {
-    static final int NONE=-1,ICON=0,DOCK=1,SEARCH=2,DRAWER=3;
+    static final int NONE=-1,ICON=0,DOCK=1,SEARCH=2,DRAWER=3,WIDGET=4;
     private GlassSurface(){}
     static int kind(String name){
         if("com.miui.home.launcher.hotseats.HotSeats".equals(name))return DOCK;
@@ -15,6 +15,7 @@ final class GlassSurface {
     static float radius(int width,int height,int kind){return radius(width,height,kind,1);}
     static float radius(int width,int height,int kind,float density){
         float size=Math.max(0,Math.min(width,height));
+        if(kind==WIDGET)return Math.min(size*.18f,36*Math.max(.5f,density));
         if(kind==DRAWER)return Math.min(size*.12f,36*Math.max(.5f,density));
         return size*(kind==SEARCH?.5f:kind==DOCK?.32f:.27f);
     }

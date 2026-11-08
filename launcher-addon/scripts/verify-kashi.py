@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import zipfile,struct,re,json,sys
-apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;','Lcom/miui/home/launcher/ShortcutIcon;','Lcom/miui/home/launcher/hotseats/HotSeats;','Lcom/miui/home/launcher/SearchBarDesktopLayout;','Lcom/miui/home/launcher/SearchBarDrawerLayout;','Lcom/miui/home/launcher/allapps/BaseAllAppsContainerView;','Lcom/miui/home/recents/views/FloatingIconView2;','Lcom/miui/home/recents/views/FloatingIconLayer2;','Lcom/miui/home/launcher/search/QuickSearchBarWidgetView;'};found={}
+apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;','Lcom/miui/home/launcher/ShortcutIcon;','Lcom/miui/home/launcher/hotseats/HotSeats;','Lcom/miui/home/launcher/SearchBarDesktopLayout;','Lcom/miui/home/launcher/SearchBarDrawerLayout;','Lcom/miui/home/launcher/allapps/BaseAllAppsContainerView;','Lcom/miui/home/recents/views/FloatingIconView2;','Lcom/miui/home/recents/views/FloatingIconLayer2;','Lcom/miui/home/launcher/search/QuickSearchBarWidgetView;','Lcom/miui/home/launcher/pageindicators/CapsuleIndicator;','Lcom/miui/home/launcher/LauncherAppWidgetHostView;'};found={}
 with zipfile.ZipFile(apk) as z:
  for name in z.namelist():
   if not re.match(r'classes\d*\.dex$',name):continue
@@ -40,4 +40,6 @@ assert any(n in found['Lcom/miui/home/launcher/ShortcutInfo;']['methods'] for n 
 assert {'setIconDrawable','getIconDrawable','applyCompoundDrawables','getShortcutInfo','setOriginalDrawableAndRoundedDrawable','getContentDrawable','getBackAnimPreviewDrawable','getBoomAnimBitmap','onTouchEvent','setIconVisibility','setIconAlpha','getIconAlpha'}<=set(found['Lcom/miui/home/launcher/ShortcutIcon;']['methods'])
 for target in ['Lcom/miui/home/recents/views/FloatingIconView2;','Lcom/miui/home/recents/views/FloatingIconLayer2;']:
  assert found[target]['animation_inputs'],'No supported animation input pair: '+target
+assert {'createBackgroundDrawable','refreshWithViewType','setBgBlurIfSupported'}<=set(found['Lcom/miui/home/launcher/pageindicators/CapsuleIndicator;']['methods'])
+assert {'setAppWidget','updateAppWidget','reInflate'}<=set(found['Lcom/miui/home/launcher/LauncherAppWidgetHostView;']['methods'])
 print(json.dumps(found,indent=2))

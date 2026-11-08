@@ -38,6 +38,7 @@ public final class GlassProvider extends ContentProvider {
             result.putString("style",style);
             result.putBoolean("screen_match",prefs.getBoolean("screen_match",true));
             result.putBoolean("white_symbols",prefs.getBoolean("white_symbols",true));
+            result.putBoolean("widget_glass",prefs.getBoolean("widget_glass",true));
             result.putBoolean("drawer_glass",prefs.getBoolean("drawer_glass",true));
             result.putBoolean("dock_glass",prefs.getBoolean("dock_glass",true));
             result.putBoolean("search_glass",prefs.getBoolean("search_glass",true));
@@ -80,6 +81,10 @@ public final class GlassProvider extends ContentProvider {
                     getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
                 }
             }
+        } else if ("widgets".equals(method)) {
+            String value=extras==null?null:extras.getString("widgets");
+            if(value!=null){prefs.edit().putString("widgets",DiagnosticLog.clean(value,600)).apply();DebugLog.event(getContext(),"WIDGETS",value);}
+            getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
         } else if ("surfaces".equals(method)) {
             String value=extras==null?null:extras.getString("surfaces");
             if(value!=null){prefs.edit().putString("surfaces",DiagnosticLog.clean(value,600)).apply();DebugLog.event(getContext(),"SURFACES",value);}

@@ -14,7 +14,7 @@ import de.robv.android.xposed.*;
 /** Only decorative backgrounds are replaced; native input, source visibility and layout remain intact. */
 final class LauncherSurfaces {
     private static final String MARK="devarix_search_surface";
-    private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout","com.miui.home.launcher.search.QuickSearchBarWidgetView","com.miui.home.launcher.SearchBarContainer","com.miui.home.launcher.allapps.BaseAllAppsContainerView","com.miui.home.launcher.allapps.AllAppsCategoryContainer","com.miui.home.launcher.allapps.category.AllAppsCategoryListContainer","com.miui.home.launcher.allapps.AllAppsRecyclerView","com.miui.home.launcher.allapps.search.AllAppsSearchContainer"};
+    private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout","com.miui.home.launcher.search.QuickSearchBarWidgetView","com.miui.home.launcher.SearchBarContainer","com.miui.home.launcher.pageindicators.CapsuleIndicator","com.miui.home.launcher.allapps.BaseAllAppsContainerView","com.miui.home.launcher.allapps.AllAppsCategoryContainer","com.miui.home.launcher.allapps.category.AllAppsCategoryListContainer","com.miui.home.launcher.allapps.AllAppsRecyclerView","com.miui.home.launcher.allapps.search.AllAppsSearchContainer"};
     private final Map<View,State> states=new WeakHashMap<>(),layers=new WeakHashMap<>();
     private final Map<View,WeakReference<View>> quickTargets=new WeakHashMap<>();
     private final Consumer<String> report,log;
@@ -26,6 +26,7 @@ final class LauncherSurfaces {
         Drawable original;ColorStateList tint;PorterDuff.Mode mode;
         WeakReference<Drawable> ours=new WeakReference<>(null);
         WeakReference<View> decor=new WeakReference<>(null);int decorVisibility;
+        Drawable indicatorImage;WeakReference<ImageView> indicator=new WeakReference<>(null);boolean nativeBlurDisabled;
         boolean applied,decorHidden;int revision=-1,kind;
     }
     LauncherSurfaces(Consumer<String> report,Consumer<String> log){this.report=report;this.log=log;}
@@ -39,8 +40,8 @@ final class LauncherSurfaces {
                     view.addOnLayoutChangeListener(watcher);view.addOnAttachStateChangeListener(watcher);
                     if(view.isAttachedToWindow())watcher.onViewAttachedToWindow(view);
                 }});
-                for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged","updateContainerVisibility","resetAppsWhenLauncherModeChanged","updateLauncherSearchBarVisibility","refreshSearchBarEnable"}){
-                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){apply((View)p.thisObject);}});
+                for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged","updateContainerVisibility","resetAppsWhenLauncherModeChanged","updateLauncherSearchBarVisibility","refreshSearchBarEnable","refreshWithViewType","setBgBlurIfSupported","setBgBlurIfSupported$kx","setBgBlurIfSupportedForU","createBackgroundDrawable","onDarkModeChanged"}){
+                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View v=(View)p.thisObject;if(SearchSurfacePolicy.capsuleHost(v.getClass().getName())){Object body=XposedHelpers.getObjectField(v,"mIndicatorBackground");if(body instanceof View){State state=states.get(body);if(state!=null)state.nativeBlurDisabled=false;}}apply(v);}});
                 }
             }catch(Throwable e){log.accept("Surface hook error "+name+": "+e);}
         }
@@ -60,7 +61,7 @@ final class LauncherSurfaces {
             View view=owner.get();if(view==null){remove();return true;}
             if(enabled&&view.isShown()){
                 State state=states.get(view);if(state!=null&&state.applied&&view.getBackground()!=state.ours.get())apply(view);
-                if(SearchSurfacePolicy.quickHost(view.getClass().getName()))apply(view);
+                if(SearchSurfacePolicy.quickHost(view.getClass().getName())||SearchSurfacePolicy.capsuleHost(view.getClass().getName()))apply(view);
                 State layer=layers.get(view);if(layer!=null&&layer.applied&&view.getBackground()!=layer.ours.get())clearLayer(view,layer.kind);
             }
             counts();return true;
@@ -79,6 +80,7 @@ final class LauncherSurfaces {
     }
     void apply(View view){
         try{
+            if(SearchSurfacePolicy.capsuleHost(view.getClass().getName())){capsuleSearch(view);return;}
             if(SearchSurfacePolicy.quickHost(view.getClass().getName())){quickSearch(view);return;}
             int kind=kind(view);
             if(kind==GlassSurface.NONE){if(GlassSurface.drawerLayer(view.getClass().getName()))clearLayer(view,GlassSurface.DRAWER);return;}
@@ -105,6 +107,23 @@ final class LauncherSurfaces {
         if(kind==GlassSurface.DRAWER&&view instanceof ViewGroup)clearDescendants((ViewGroup)view);
         counts();
     }
+    private void capsuleSearch(View host){
+        Object value=XposedHelpers.getObjectField(host,"mIndicatorBackground");
+        if(!(value instanceof ImageView))return;
+        ImageView body=(ImageView)value;
+        XposedHelpers.setAdditionalInstanceField(body,MARK,true);
+        State state=states.get(body);
+        if(!enabled||!search){if(state!=null)restore(body,state);return;}
+        applySurface(body,GlassSurface.SEARCH);state=states.get(body);
+        if(body.getDrawable()!=null){state.indicatorImage=body.getDrawable();state.indicator=new WeakReference<>(body);body.setImageDrawable(null);}
+        // This ImageView is decoration only; mIndicatorContent retains text, icon and click handling.
+        if(!state.nativeBlurDisabled){
+            for(View decor:new View[]{host,body})try{XposedHelpers.callMethod(decor,"setMiBackgroundBlurMode",0);XposedHelpers.callMethod(decor,"setMiViewBlurMode",0);XposedHelpers.callMethod(decor,"clearMiBackgroundBlendColor");}catch(Throwable ignored){}
+            state.nativeBlurDisabled=true;
+            log.accept("Compact home search bound: CapsuleIndicator.mIndicatorBackground; native text/actions retained");
+        }
+        if(host.getBackground()!=null)clearLayer(host,GlassSurface.SEARCH);
+    }
     private void quickSearch(View host){
         WeakReference<View> reference=quickTargets.get(host);View previous=reference==null?null:reference.get();
         if(!enabled||!search){if(previous!=null){State state=states.get(previous);if(state!=null)restore(previous,state);}return;}
@@ -129,7 +148,7 @@ final class LauncherSurfaces {
         return best;
     }
     private void clearDescendants(ViewGroup parent){for(int i=0;i<parent.getChildCount();i++){View child=parent.getChildAt(i);if(GlassSurface.drawerLayer(child.getClass().getName()))clearLayer(child,GlassSurface.DRAWER);if(child instanceof ViewGroup)clearDescendants((ViewGroup)child);}}
-    private boolean inside(View view,int kind){for(View current=view;current!=null;current=current.getParent() instanceof View?(View)current.getParent():null){if(kind==GlassSurface.SEARCH&&SearchSurfacePolicy.quickHost(current.getClass().getName()))return true;if(kind==GlassSurface.DRAWER&&kind(current)==GlassSurface.DRAWER)return true;}return false;}
+    private boolean inside(View view,int kind){for(View current=view;current!=null;current=current.getParent() instanceof View?(View)current.getParent():null){if(kind==GlassSurface.SEARCH&&(SearchSurfacePolicy.quickHost(current.getClass().getName())||SearchSurfacePolicy.capsuleHost(current.getClass().getName())))return true;if(kind==GlassSurface.DRAWER&&kind(current)==GlassSurface.DRAWER)return true;}return false;}
     private void clearLayer(View view,int kind){
         State state=layers.get(view);
         if(!enabled||(kind==GlassSurface.SEARCH?!search:!drawer)||!inside(view,kind)){if(state!=null)restore(view,state);return;}
@@ -147,7 +166,11 @@ final class LauncherSurfaces {
     private void restore(View view,State state){
         if(!state.applied)return;
         if(view.getBackground()==state.ours.get()){background(view,state.original);view.setBackgroundTintList(state.tint);view.setBackgroundTintMode(state.mode);}
-        restoreDecor(state);state.applied=false;state.ours.clear();log.accept("Surface restored: "+view.getClass().getName());counts();
+        restoreDecor(state);state.applied=false;state.ours.clear();
+        ImageView indicator=state.indicator.get();if(indicator!=null&&indicator.getDrawable()==null)indicator.setImageDrawable(state.indicatorImage);
+        state.indicator.clear();state.indicatorImage=null;
+        if(state.nativeBlurDisabled){state.nativeBlurDisabled=false;ViewParent parent=view.getParent();if(parent instanceof View&&SearchSurfacePolicy.capsuleHost(parent.getClass().getName()))try{XposedHelpers.callMethod(parent,"setBgBlurIfSupported",true);}catch(Throwable ignored){}}
+log.accept("Surface restored: "+view.getClass().getName());counts();
     }
     private void renderStatus(String message){if(!message.equals(lastRenderStatus)){lastRenderStatus=message;log.accept(message);}}
     void invalidate(){for(View view:new ArrayList<>(states.keySet()))if(view!=null)view.invalidate();}

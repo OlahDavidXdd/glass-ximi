@@ -47,6 +47,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static volatile String style="liquid";
     private static WallpaperBackdrop wallpaper;
     private static LauncherSurfaces surfaces;
+    private static LauncherWidgets widgets;
     private static volatile boolean selfRestartReady;
     private static volatile Set<String> packages=Collections.emptySet();
     private static String lastStatus="",lastBindings="";
@@ -68,6 +69,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
         MAIN=new Handler(Looper.getMainLooper());
         surfaces=new LauncherSurfaces(GlassHook::surfaceReport,message->debug("SURFACE",message));
         surfaces.install(param.classLoader);
+        widgets=new LauncherWidgets(GlassHook::widgetReport,message->debug("WIDGET",message));
+        try{widgets.install(param.classLoader);}catch(Throwable e){error("WIDGET_HOOK_ERROR",e);}
         new LauncherAnimations(()->enabled&&!INTERNAL.get(),GlassHook::animationSnapshot,message->debug("ANIMATION",message)).install(param.classLoader);
         XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
             @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];try{initialize();}catch(Throwable e){error("INITIALIZE_ERROR",e);}}}
@@ -185,6 +188,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static void walk(View view){
         if(!enabled)return;
         if(surfaces!=null)surfaces.apply(view);
+        if(widgets!=null)widgets.apply(view);
         if(isIcon(view))apply(view);
         if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)walk(group.getChildAt(i));}
     }
@@ -265,7 +269,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
                 boolean nextWhite=config.getBoolean("white_symbols",true),nextScreen=config.getBoolean("screen_match",true);
-                boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true);
+                boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true),nextWidgets=config.getBoolean("widget_glass",true);
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
@@ -276,6 +280,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;whiteSymbols=nextWhite;screenMatch=nextScreen;packages=nextPackages;FAILED.clear();
                     LiquidGlassDrawable.configure(shader,plate,whiteSymbols,screenMatch);wallpaper.configure(enabled&&!screenMatch&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
                     if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,nextDrawer,blur,radius,wallpaper);
+                    if(widgets!=null)widgets.configure(enabled&&nextWidgets,blur,radius,wallpaper);
                     report(enabled?"Selected "+style+" material. Waiting for mapped icons to bind.":"Launcher connected. Glass icons are disabled.");
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}
                     Activity activity=lastActivity.get();if(enabled&&activity!=null)scan(activity.getWindow().getDecorView());
@@ -400,6 +405,10 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static void restore(View view,State state){
         clearBlur(view,state);
         if(state.applied){INTERNAL.set(true);try{if(view instanceof ImageView)setIconDrawable(view,state.original);else{XposedHelpers.callMethod(view,"setIconDrawable",state.original,null);if(state.original!=null)state.original.setAlpha(state.visibility.alpha);Object mask=field(view,"mTransparentDrawable");if(state.visibility.hidden&&mask instanceof Drawable)XposedHelpers.callMethod(view,"applyCompoundDrawables",mask);}}finally{INTERNAL.set(false);}state.applied=false;state.packageName=null;}
+    }
+    private static void widgetReport(String message){
+        if(context==null)return;
+        IO.execute(()->{try{Bundle data=new Bundle();data.putString("widgets",message);context.getContentResolver().call(GlassProvider.SETTINGS,"widgets",null,data);}catch(Throwable e){error("WIDGET_STATUS_ERROR",e);}});
     }
     private static void surfaceReport(String message){
         if(context==null)return;

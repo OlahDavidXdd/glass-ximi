@@ -9,6 +9,18 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Compact search and clock/weather widgets (0.9.0)
+
+[Download 0.9.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.9.0-test). The current icons and animation logic are preserved from 0.8.0, as requested. Validation checks hashes of their unchanged rendering/generation/transition source files.
+
+The small home **Search** capsule is `pageindicators.CapsuleIndicator`, with an independent decorative ImageView (`mIndicatorBackground`) and live text/control (`mIndicatorContent`). Previous builds covered the larger search layouts but missed this capsule. This build replaces that decorative layer, clears its image and native color blend, and rebinds after style changes. It retains the existing text, magnifier, action, animation visibility, size and positioning. Disabling glass restores the original image/background and requests the native blur style again.
+
+**Glass clock & weather widgets** is on by default. It targets recognized Android clock/weather AppWidget providers, replaces their separate card backgrounds with the existing glass material, and removes large background layers. Only explicitly named, non-interactive decorative images can be cleared; clock faces/hands, weather icons, text and taps are retained. No replacement weather service, location permission, timer or widget provider is added. Updates/reinflation and layout changes reapply the material, and disabling restores original backgrounds/tints/artwork.
+
+Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. MAML-only cards are not supported here. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
+
+Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.9.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
+
 ## Screen matching and native source visibility (0.8.0)
 
 [Download 0.8.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.8.0-test). **Match screen background** is on by default for Liquid Glass. It removes the wallpaper tile, desaturation and colored body wash. A dedicated background-only render node uses Xiaomi's backdrop-blur APIs where supported; glyphs and labels are not placed inside that blur node. The node is configured through an unattached plain View and rendered beneath the foreground, without adding layout/input children. Firmware may reject or fail to render this path: that is logged, and the body stays fully transparent with neutral edge reflections. An API call succeeding is not treated as proof that blur is visually correct.

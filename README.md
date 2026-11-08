@@ -1,4 +1,4 @@
-**Latest launcher test:** [0.8.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.8.0-test) · Screen-matching glass without colored wallpaper tiles, native source-icon visibility/fade fixes and newer built-in home search support. [Setup/source](launcher-addon). After installing, reboot once if your loaded hook is old or root restart was denied, then verify **Loaded hook: 0.8.0-test**. Previous builds remain under [Releases](https://github.com/OlahDavidXdd/glass-ximi/releases).
+**Latest launcher test:** [0.9.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.9.0-test) · Compact home search glass and supported clock/weather widget backgrounds. Current icons and animation logic preserved. [Setup/source](launcher-addon). Restart/reboot after installing and verify **Loaded hook: 0.9.0-test**. Previous builds remain under [Releases](https://github.com/OlahDavidXdd/glass-ximi/releases).
 
 # Smoky Glass Frosted Gray v6
 

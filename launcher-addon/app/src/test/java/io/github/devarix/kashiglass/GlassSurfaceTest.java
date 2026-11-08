@@ -2,6 +2,8 @@ package io.github.devarix.kashiglass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 public class GlassSurfaceTest {
+    @org.junit.Test public void widgetRadiusIsBoundedWithoutChangingIconGeometry(){org.junit.Assert.assertEquals(36f,GlassSurface.radius(400,400,GlassSurface.WIDGET,1),.01f);org.junit.Assert.assertEquals(27f,GlassSurface.radius(100,100,GlassSurface.ICON),.01f);}
+
     @Test public void targetWhitelistExcludesOtherLauncherControls(){
         assertEquals(GlassSurface.DOCK,GlassSurface.kind("com.miui.home.launcher.hotseats.HotSeats"));
         assertEquals(GlassSurface.SEARCH,GlassSurface.kind("com.miui.home.launcher.SearchBarDesktopLayout"));
