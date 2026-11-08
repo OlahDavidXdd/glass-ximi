@@ -36,6 +36,7 @@ public final class GlassProvider extends ContentProvider {
             edit.apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
+            result.putBoolean("screen_match",prefs.getBoolean("screen_match",true));
             result.putBoolean("white_symbols",prefs.getBoolean("white_symbols",true));
             result.putBoolean("drawer_glass",prefs.getBoolean("drawer_glass",true));
             result.putBoolean("dock_glass",prefs.getBoolean("dock_glass",true));

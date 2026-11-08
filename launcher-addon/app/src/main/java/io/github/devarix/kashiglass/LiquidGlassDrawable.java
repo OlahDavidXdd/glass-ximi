@@ -15,10 +15,11 @@ import java.util.function.Consumer;
 final class LiquidGlassDrawable extends Drawable {
     private static String source;
     private static Bitmap plate;
-    private static boolean whiteSymbols=true;
+    private static boolean whiteSymbols=true,matchScreen=true;
     private static final ColorFilter WHITE=new ColorMatrixColorFilter(new ColorMatrix(new float[]{0,0,0,0,255, 0,0,0,0,255, 0,0,0,0,255, .2126f,.7152f,.0722f,1,-255}));
     static void configure(String shader,Bitmap fallback){configure(shader,fallback,true);}
-    static void configure(String shader,Bitmap fallback,boolean white){source=shader;plate=fallback;whiteSymbols=white;}
+    static void configure(String shader,Bitmap fallback,boolean white){configure(shader,fallback,white,true);}
+    static void configure(String shader,Bitmap fallback,boolean white,boolean screen){source=shader;plate=fallback;whiteSymbols=white;matchScreen=screen;}
     private final WeakReference<View> owner;
     private final Bitmap glyph;
     private final int surface;
@@ -29,7 +30,14 @@ final class LiquidGlassDrawable extends Drawable {
     private final RenderNode node=new RenderNode("devarix-QWEA0-Lens");
     private final Paint foreground=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
     private final Paint symbol=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
-    private final boolean white=whiteSymbols;
+    private final boolean white=whiteSymbols,screenMatching=matchScreen;
+    private final NativeScreenBackdrop nativeBackdrop=new NativeScreenBackdrop();
+    private final Paint rim=new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Rect rimBounds=new Rect();
+    private final RectF rimOuter=new RectF(),rimInner=new RectF();
+    private final Path rimGlint=new Path();
+    private Shader outerLight,innerLight;
+    private float rimRadius,rimWidth;
     private final RectF target=new RectF();
     private RuntimeShader shader;
     private final Paint glass=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -42,19 +50,21 @@ final class LiquidGlassDrawable extends Drawable {
         long pose=pose(view);if(pose!=lastPose){lastPose=pose;invalidateSelf();}
         queuePoll(view);
     }};
-    private int alpha=255,lastW,lastH,lastMargin;
+    private volatile int alpha=255;
+    private int lastW,lastH,lastMargin;
     private float lastBlur=-1,lastPress=-1;
     LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status){this(view,glyph,backdrop,blur,strength,status,GlassSurface.ICON);}
     LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status,int surface){this.surface=surface;this.owner=new WeakReference<>(view);this.glyph=glyph;this.backdrop=backdrop;this.blur=blur;this.strength=strength;this.status=status;symbol.setColorFilter(white?WHITE:null);}
     @Override public void draw(Canvas canvas){
-        Rect b=getBounds();if(b.isEmpty())return;View view=owner.get();if(view==null)return;
+        Rect b=getBounds();if(b.isEmpty()||alpha==0)return;View view=owner.get();if(view==null)return;
         if(!canvas.isHardwareAccelerated()&&!reportedSoftware){reportedSoftware=true;status.accept("QWEA0 lens unavailable on a software canvas. Static fallback only.");}
         queuePoll(view);lastPose=pose(view);
+        if(screenMatching&&blur)nativeBackdrop.draw(canvas,view,b,GlassSurface.radius(b.width(),b.height(),surface,view.getResources().getDisplayMetrics().density),Math.round(strength*view.getResources().getDisplayMetrics().density),alpha,status);
         int saved=alpha==255?canvas.save():canvas.saveLayerAlpha(new RectF(b),alpha);
         try{
             boolean drawn=false;
-            if(!broken&&canvas.isHardwareAccelerated()&&backdrop.isAvailable())try{drawn=drawLens(canvas,view,b);}catch(Throwable e){broken=true;status.accept("QWEA0 lens unavailable on this driver: "+e.getClass().getSimpleName()+". Showing the clearly marked static fallback.");}
-            if(!drawn){
+            if(!screenMatching&&!broken&&canvas.isHardwareAccelerated()&&backdrop.isAvailable())try{drawn=drawLens(canvas,view,b);}catch(Throwable e){broken=true;status.accept("QWEA0 lens unavailable on this driver: "+e.getClass().getSimpleName()+". Showing the clearly marked static fallback.");}
+            if(!drawn&&!screenMatching){
                 if(surface==GlassSurface.ICON&&plate!=null){target.set(b);int savedAlpha=foreground.getAlpha();foreground.setAlpha(160);canvas.drawBitmap(plate,null,target,foreground);foreground.setAlpha(savedAlpha);}
                 else if(surface!=GlassSurface.ICON){glass.setShader(null);glass.setColor(0x38636363);float r=GlassSurface.radius(b.width(),b.height(),surface,view.getResources().getDisplayMetrics().density);canvas.drawRoundRect(new RectF(b),r,r,glass);glass.setColor(Color.WHITE);}
             }
@@ -78,7 +88,7 @@ final class LiquidGlassDrawable extends Drawable {
             shader.setFloatUniform("bevel",edge*.15f);shader.setFloatUniform("refractPx",edge*.24f);shader.setFloatUniform("falloff",2.1f);shader.setFloatUniform("refractDir",-1);
             shader.setFloatUniform("sampleLo",margin+1f,margin+1f);shader.setFloatUniform("sampleHi",margin+w-1f,margin+h-1f);
             shader.setFloatUniform("dispersion",0);shader.setFloatUniform("lightDir",-.866f,-.5f);shader.setFloatUniform("specStrength",1.12f);shader.setFloatUniform("rimBandMax",Math.max(2,edge*.032f));
-            shader.setFloatUniform("tintColor",1,1,1,.025f);shader.setFloatUniform("adaptiveTint",0);shader.setFloatUniform("glassTint",1,1,1,.012f);shader.setFloatUniform("dimAmount",.02f);shader.setFloatUniform("satFactor",0);
+            shader.setFloatUniform("tintColor",1,1,1,0);shader.setFloatUniform("adaptiveTint",0);shader.setFloatUniform("glassTint",1,1,1,0);shader.setFloatUniform("dimAmount",0);shader.setFloatUniform("satFactor",1);
             shader.setFloatUniform("press",press);shader.setFloatUniform("touchPos",w*.5f,h*.5f);shader.setFloatUniform("touchAmp",0);
             RenderEffect lens=RenderEffect.createRuntimeShaderEffect(shader,"content");
             node.setRenderEffect(blurRadius>.01f?RenderEffect.createChainEffect(lens,RenderEffect.createBlurEffect(blurRadius,blurRadius,Shader.TileMode.CLAMP)):lens);
@@ -93,33 +103,28 @@ final class LiquidGlassDrawable extends Drawable {
         status.accept("QWEA0 refraction/blur render commands submitted using a static wallpaper. Physical-device appearance still needs verification.");return true;
     }
     private void drawSurface(Canvas canvas,Rect bounds,boolean pressed){
-        float size=Math.min(bounds.width(),bounds.height()),r=GlassSurface.radius(bounds.width(),bounds.height(),surface,owner.get()==null?1:owner.get().getResources().getDisplayMetrics().density);
-        RectF body=new RectF(bounds);int saved=canvas.save();Path clip=new Path();clip.addRoundRect(body,r,r,Path.Direction.CW);canvas.clipPath(clip);
-        glass.setStyle(Paint.Style.FILL);
-        glass.setShader(new LinearGradient(body.left,body.top,body.right,body.bottom,new int[]{0x2cffffff,0x08ffffff,0x03484848,0x14000000},new float[]{0,.24f,.65f,1},Shader.TileMode.CLAMP));
-        canvas.drawRoundRect(body,r,r,glass);
-        glass.setShader(new RadialGradient(body.left+size*.16f,body.top+size*.02f,size*.66f,new int[]{pressed?0x68ffffff:0x48ffffff,0x00ffffff},null,Shader.TileMode.CLAMP));
-        if(surface==GlassSurface.DRAWER){glass.setShader(null);glass.setColor(0x22484848);canvas.drawRoundRect(body,r,r,glass);glass.setColor(Color.WHITE);}
-        else{
-            float w=body.width(),h=body.height();Path reflection=new Path();reflection.moveTo(body.left-w*.05f,body.top-h*.05f);reflection.lineTo(body.right+w*.05f,body.top-h*.05f);reflection.lineTo(body.right+w*.05f,body.top+h*.12f);
-            reflection.cubicTo(body.left+w*.72f,body.top+h*.36f,body.left+w*.30f,body.top+h*.37f,body.left-w*.05f,body.top+h*.19f);reflection.close();
-            glass.setShader(new LinearGradient(body.left,body.top,body.left,body.top+h*.40f,new int[]{pressed?0x50ffffff:0x38ffffff,0x08ffffff},null,Shader.TileMode.CLAMP));canvas.drawPath(reflection,glass);
+        if(!rimBounds.equals(bounds)){
+            rimBounds.set(bounds);float small=Math.min(bounds.width(),bounds.height());View ownerView=owner.get();float density=ownerView==null?1:ownerView.getResources().getDisplayMetrics().density;
+            rimRadius=GlassSurface.radius(bounds.width(),bounds.height(),surface,density);rimWidth=Math.max(.7f,Math.min(small*.009f,1.5f*density));
+            rimOuter.set(bounds);rimOuter.inset(rimWidth*.5f,rimWidth*.5f);rimInner.set(rimOuter);float inset=Math.min(small*.018f,2.5f*density);rimInner.inset(inset,inset);
+            outerLight=new LinearGradient(bounds.left,bounds.top,bounds.right,bounds.bottom,new int[]{0xb8ffffff,0x22ffffff,0x94ffffff},new float[]{0,.5f,1},Shader.TileMode.CLAMP);
+            innerLight=new LinearGradient(bounds.left,bounds.top,bounds.left,bounds.bottom,0x08ffffff,0x62ffffff,Shader.TileMode.CLAMP);
+            rimGlint.reset();rimGlint.moveTo(bounds.left+small*.08f,bounds.top+small*.10f);rimGlint.cubicTo(bounds.left+small*.28f,bounds.top+small*.02f,bounds.right-small*.28f,bounds.top+small*.04f,bounds.right-small*.08f,bounds.top+small*.11f);
         }
-        glass.setStyle(Paint.Style.STROKE);glass.setStrokeWidth(Math.max(.8f,surface==GlassSurface.DRAWER?Math.min(size*.009f,4.5f):size*.009f));body.inset(glass.getStrokeWidth()*.5f,glass.getStrokeWidth()*.5f);
-        glass.setShader(new LinearGradient(body.left,body.top,body.right,body.bottom,new int[]{0xd8ffffff,0x40ffffff,0xa0ffffff,0x38000000},new float[]{0,.40f,.76f,1},Shader.TileMode.CLAMP));
-        canvas.drawRoundRect(body,r,r,glass);
-        float inner=surface==GlassSurface.DRAWER?Math.min(size*.018f,7.5f):size*.018f;body.inset(inner,inner);glass.setStrokeWidth(Math.max(.6f,size*.005f));
-        glass.setShader(new LinearGradient(body.left,body.top,body.left,body.bottom,0x10ffffff,0x72ffffff,Shader.TileMode.CLAMP));canvas.drawRoundRect(body,r-size*.02f,r-size*.02f,glass);
-        glass.setShader(null);glass.setStyle(Paint.Style.FILL);canvas.restoreToCount(saved);
+        rim.setStyle(Paint.Style.STROKE);rim.setStrokeWidth(rimWidth);rim.setShader(outerLight);canvas.drawRoundRect(rimOuter,rimRadius,rimRadius,rim);
+        rim.setStrokeWidth(Math.max(.5f,rimWidth*.5f));rim.setShader(innerLight);canvas.drawRoundRect(rimInner,Math.max(0,rimRadius-rimWidth),Math.max(0,rimRadius-rimWidth),rim);
+        rim.setShader(null);rim.setColor(pressed?0x62ffffff:0x28ffffff);canvas.drawPath(rimGlint,rim);rim.setColor(Color.WHITE);
     }
+    static boolean isScreenMatching(){return matchScreen;}
     Bitmap glyph(){return glyph;}
     static Bitmap coldTransition(Bitmap glyph){
         LiquidGlassDrawable detached=new LiquidGlassDrawable(null,glyph,null,false,24,message->{});
         Bitmap bitmap=Bitmap.createBitmap(192,192,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);Rect bounds=new Rect(0,0,192,192);
-        if(plate!=null){detached.foreground.setAlpha(160);canvas.drawBitmap(plate,null,bounds,detached.foreground);detached.foreground.setAlpha(255);}
+        if(plate!=null&&!detached.screenMatching){detached.foreground.setAlpha(160);canvas.drawBitmap(plate,null,bounds,detached.foreground);detached.foreground.setAlpha(255);}
         detached.drawSurface(canvas,bounds,false);canvas.drawBitmap(glyph,null,bounds,detached.symbol);return bitmap;
     }
     Bitmap transitionBitmap(){
+        if(screenMatching)return coldTransition(glyph);
         View view=owner.get();if(view==null)return null;
         LiquidGlassDrawable frozen=new LiquidGlassDrawable(view,glyph,backdrop,blur,strength,status,surface);
         Rect bounds=new Rect(getBounds());if(bounds.isEmpty())bounds.set(0,0,192,192);frozen.setBounds(bounds);return frozen.renderSnapshot();
@@ -148,13 +153,14 @@ final class LiquidGlassDrawable extends Drawable {
             drawSurface(fallback,old,false);if(glyph!=null)fallback.drawBitmap(glyph,null,old,symbol);return bitmap;
         }finally{setBounds(old);}
     }
-    private void queuePoll(View view){if(!pollQueued&&view.isAttachedToWindow()&&view.getWindowVisibility()==View.VISIBLE&&isVisible()&&getCallback()!=null){pollQueued=true;scheduleSelf(poll,SystemClock.uptimeMillis()+33);}}
+    private void queuePoll(View view){if(screenMatching)return;if(!pollQueued&&view.isAttachedToWindow()&&view.getWindowVisibility()==View.VISIBLE&&isVisible()&&getCallback()!=null){pollQueued=true;scheduleSelf(poll,SystemClock.uptimeMillis()+33);}}
     private long pose(View view){view.getLocationOnScreen(position);long hash=position[0]*31L+position[1];hash=hash*31+Float.floatToIntBits(view.getScaleX());hash=hash*31+Float.floatToIntBits(view.getScaleY());if(view instanceof android.widget.ImageView){((android.widget.ImageView)view).getImageMatrix().getValues(matrixValues);for(float v:matrixValues)hash=hash*31+Float.floatToIntBits(v);}return hash;}
     @Override public boolean setVisible(boolean visible,boolean restart){if(!visible){unscheduleSelf(poll);pollQueued=false;}return super.setVisible(visible,restart);}
     @Override public int getIntrinsicWidth(){return glyph==null?-1:glyph.getWidth();}
     @Override public int getIntrinsicHeight(){return glyph==null?-1:glyph.getHeight();}
     @Override public boolean isStateful(){return true;}
     @Override protected boolean onStateChange(int[] state){invalidateSelf();return true;}
+    @Override public int getAlpha(){return alpha;}
     @Override public void setAlpha(int alpha){this.alpha=alpha;invalidateSelf();}
     @Override public void setColorFilter(ColorFilter filter){foreground.setColorFilter(filter);invalidateSelf();}
     @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}

@@ -30,7 +30,10 @@
         "getBackAnimPreviewDrawable",
         "getBoomAnimBitmap",
         "onTouchEvent",
-        "setTag"
+        "setTag",
+        "setIconVisibility",
+        "setIconAlpha",
+        "getIconAlpha"
       ]
     },
     "Lcom/miui/home/launcher/hotseats/HotSeats;": {
@@ -82,6 +85,13 @@
         "com.miui.home.common.animate.LaunchAppAndBackHomeAnimTarget",
         "android.graphics.drawable.Drawable"
       ]
+    },
+    "Lcom/miui/home/launcher/search/QuickSearchBarWidgetView;": {
+      "binding_methods": [
+        "init",
+        "updateLauncherSearchBarVisibility"
+      ],
+      "surface": "known-host bar background, preserving controls"
     }
   },
   "device_blur_verified": false

@@ -7,9 +7,9 @@ final class AutoGlyph {
     private AutoGlyph(){}
     static Bitmap capture(Drawable original){
         if(original==null||original instanceof LiquidGlassDrawable)return null;
-        Drawable source=original;
-        if(original instanceof AdaptiveIconDrawable){
-            AdaptiveIconDrawable adaptive=(AdaptiveIconDrawable)original;
+        Drawable source=launcherForeground(original);
+        if(source instanceof AdaptiveIconDrawable){
+            AdaptiveIconDrawable adaptive=(AdaptiveIconDrawable)source;
             source=adaptive.getMonochrome()!=null?adaptive.getMonochrome():adaptive.getForeground();
         }
         if(source==null)return null;
@@ -20,6 +20,21 @@ final class AutoGlyph {
         Rect old=new Rect(source.getBounds());Bitmap bitmap=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888);
         try{source.setBounds(0,0,128,128);source.draw(new Canvas(bitmap));}finally{source.setBounds(old);}
         return bitmap;
+    }
+    private static Drawable launcherForeground(Drawable original){
+        Drawable source=original;
+        try{
+            if(source.getClass().getName().equals("com.miui.home.common.drawable.BadgeDrawable")){Object back=source.getClass().getMethod("getBackDrawable").invoke(source);if(back instanceof Drawable)source=(Drawable)back;}
+            if(source.getClass().getName().equals("com.miui.home.common.drawable.LayerAdaptiveIconDrawable")){
+                Object layers=source.getClass().getMethod("getForegroundLayers").invoke(source);java.util.ArrayList<Drawable> foregrounds=new java.util.ArrayList<>();
+                if(layers instanceof Iterable<?>)for(Object layer:(Iterable<?>)layers){
+                    Object value=layer.getClass().getMethod("getCurrentShowDrawable").invoke(layer);
+                    if(value instanceof Drawable){Drawable drawable=(Drawable)value;Drawable.ConstantState state=drawable.getConstantState();foregrounds.add(state==null?drawable:state.newDrawable().mutate());}
+                }
+                if(!foregrounds.isEmpty())return new LayerDrawable(foregrounds.toArray(new Drawable[0]));
+            }
+        }catch(ReflectiveOperationException|RuntimeException ignored){}
+        return source;
     }
     static Bitmap generate(Bitmap source){
         int size=source.getWidth();int[] pixels=new int[size*size];source.getPixels(pixels,0,size,0,0,size,size);

@@ -15,9 +15,17 @@ final class LauncherAnimations {
     void install(ClassLoader loader){
         for(String name:AnimationPolicy.TARGETS){
             Class<?> type=XposedHelpers.findClassIfExists(name,loader);if(type==null){log.accept("Target absent: "+name);continue;}
-            for(Method method:type.getDeclaredMethods())install(method,method.getParameterTypes());
+            for(Method method:type.getDeclaredMethods()){install(method,method.getParameterTypes());preserveAlpha(method);}
             for(Constructor<?> constructor:type.getDeclaredConstructors())install(constructor,constructor.getParameterTypes());
         }
+        Class<?> helper=XposedHelpers.findClassIfExists("com.miui.home.recents.views.FloatingIconUtils$Companion",loader);
+        if(helper!=null)for(Method method:helper.getDeclaredMethods())preserveAlpha(method);
+    }
+    private void preserveAlpha(Method method){
+        if(!"fillDrawable".equals(method.getName())||!android.graphics.drawable.Drawable.class.isAssignableFrom(method.getReturnType())||method.getParameterTypes().length==0||method.getParameterTypes()[0]!=android.graphics.drawable.Drawable.class)return;
+        try{XposedBridge.hookMethod(method,new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){
+            if(enabled.getAsBoolean()&&p.args[0] instanceof OwnedTransitionDrawable&&((OwnedTransitionDrawable)p.args[0]).preserveTransparency){p.setResult(p.args[0]);log.accept("Preserved transparent glass animation pixels; skipped native opaque-fill conversion");}
+        }});}catch(Throwable e){log.accept("Animation alpha hook error: "+e);}
     }
     private void install(Member member,Class<?>[] parameters){
         String[] names=new String[parameters.length];for(int i=0;i<names.length;i++)names[i]=parameters[i].getName();

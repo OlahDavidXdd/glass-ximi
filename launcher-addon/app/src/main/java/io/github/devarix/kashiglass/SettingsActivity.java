@@ -25,15 +25,16 @@ public final class SettingsActivity extends Activity {
         text(page,"devarix Glass",30,Color.WHITE);text(page,"For Kashi launcher · HyperOS 3",16,0xffcccccc);
         text(page,"1. LSPosed → Modules → devarix Glass → enable and select System launcher (com.miui.home).\n2. Tap Enable Liquid Glass below.\n3. Tap Restart launcher and allow root, then open your home screen.\nThe icon switch alone cannot enable the LSPosed module.",15,0xffcccccc);
         text(page,"Material",18,Color.WHITE);
-        Spinner material=new Spinner(this);material.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Liquid Glass · QWEA0 renderer","Frosted Glass · previous style"}));material.setSelection("frosted".equals(GlassConfig.style(prefs.getString("style","liquid")))?1:0);page.addView(material);
+        Spinner material=new Spinner(this);material.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Liquid Glass · screen / wallpaper","Frosted Glass · previous style"}));material.setSelection("frosted".equals(GlassConfig.style(prefs.getString("style","liquid")))?1:0);page.addView(material);
         material.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){} public void onItemSelected(AdapterView<?> p,android.view.View v,int position,long id){String style=position==0?"liquid":"frosted";if(!style.equals(GlassConfig.style(prefs.getString("style","liquid")))){prefs.edit().putString("style",style).commit();changed();}}});
         iconsSwitch=toggle(page,"Use built-in glass icons","700 grayscale mappings · 512 px symbols · Liquid or Frosted material","icons");
+        toggle(page,"Match screen background","No extra tint or wallpaper-colored tile. Uses a dedicated Xiaomi backdrop-blur node when supported; otherwise keeps the body transparent. Turn off only for the static-wallpaper lens.","screen_match");
         toggle(page,"White center symbols","White symbols with fine detail retained. Turn off to keep the original silver shading.","white_symbols");
         toggle(page,"Automatic glass icons","Creates a silver foreground and glass finish for apps without a bundled mapping. Bundled artwork always takes priority.","automatic");
         toggle(page,"Glass dock","Rounded gray glass behind the dock icons. Uses the same lens, reflections and blur strength as Liquid Glass icons.","dock_glass");
         toggle(page,"Glass search bar","Matching glass capsule for Kashi’s built-in home and drawer search bars. Their controls and native width are retained.","search_glass");
         toggle(page,"Glass app drawer","Frosted gray sheet behind the app grid and search results. Keeps scrolling, categories and search input.","drawer_glass");
-        blurSwitch=toggle(page,"Backdrop blur","Liquid Glass uses the QWEA0 shader; Frosted Glass uses Xiaomi native blur.","blur");
+        blurSwitch=toggle(page,"Backdrop blur","Screen matching uses a dedicated native backdrop node. Static-wallpaper lens mode uses the QWEA0 shader.","blur");
         toggle(page,"Wallpaper access via root","Optional. If normal wallpaper access is denied, requests root for System launcher to read the current static wallpaper only.","root_wallpaper");
         Button enable=new Button(this);enable.setText("Enable Liquid Glass");page.addView(enable);
         enable.setOnClickListener(v->{
@@ -70,7 +71,7 @@ public final class SettingsActivity extends Activity {
         copy.setOnClickListener(v->new Thread(()->{try{String report=DebugLog.snapshot(this);main.post(()->{if(isDestroyed())return;((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("devarix Glass logs",report));Toast.makeText(this,"Logs copied",Toast.LENGTH_SHORT).show();});}catch(Exception e){logFailure(e);}},"glass-copy-log").start());
         Button clear=new Button(this);clear.setText("Clear logs");page.addView(clear);
         clear.setOnClickListener(v->{try{DebugLog.clear(this);updateStatus();Toast.makeText(this,"Logs cleared",Toast.LENGTH_SHORT).show();}catch(Exception e){logFailure(e);}});
-        text(page,"Experimental build. Hooks were checked against Kashi V7.5. Liquid Glass currently samples static wallpapers; live wallpapers need the native Frosted mode. A device test is still required. If blur is unavailable, it will not be replaced by a fake blur image.",14,0xffb8b8b8);
+        text(page,"Experimental build checked against Kashi V7.5. Screen matching keeps the real background without extra color. Native blur is firmware dependent; unavailable blur leaves a clear rim. Static-wallpaper lens mode does not capture the full screen. Check Loaded hook after updating.",14,0xffb8b8b8);
         text(page,"Developer: devarix\nOriginal base symbols: 一凡UI / Guofeng 26 Lite. Liquid Glass renderer: QWEA0 / pandadog (MIT). Additional icon sources are listed in the source repository.",13,0xffaaaaaa);
         getContentResolver().registerContentObserver(android.net.Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),false,observer);
     }
@@ -144,7 +145,7 @@ public final class SettingsActivity extends Activity {
     private void logFailure(Exception e){DebugLog.event(this,"EXPORT_ERROR",android.util.Log.getStackTraceString(e));main.post(()->{if(!isDestroyed())Toast.makeText(this,"Log action failed: "+e.getClass().getSimpleName(),Toast.LENGTH_LONG).show();});}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private TextView text(LinearLayout page,String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(10),0,dp(12));page.addView(t);return t;}
-    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key)||"white_symbols".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
+    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key)||"white_symbols".equals(key)||"screen_match".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
     @Override protected void onResume(){super.onResume();updateStatus();getContentResolver().notifyChange(GlassProvider.SETTINGS,null);}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);getContentResolver().unregisterContentObserver(observer);super.onDestroy();}
 }

@@ -25,7 +25,7 @@ with zipfile.ZipFile(apk) as z:
  assert z.read('assets/xposed_init').decode().strip()=='io.github.devarix.kashiglass.GlassHook'
  report.update(icon_mappings=700,source_assets_match=True,asset_descriptors_supported=True,apk_sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
 units=list((root/'app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'))
-assert {'TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml'}<={p.name for p in units}
+assert {'TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml'}<={p.name for p in units}
 count=0
 for unit_path in units:
  unit=ET.parse(unit_path).getroot()

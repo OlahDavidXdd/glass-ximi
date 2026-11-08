@@ -12,7 +12,7 @@ public final class PreviewActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         try(var shader=getAssets().open("shaders/qwea0_lens.agsl");var plate=getAssets().open("liquid_plate.png")){
-            LiquidGlassDrawable.configure(new String(shader.readAllBytes(),StandardCharsets.UTF_8),BitmapFactory.decodeStream(plate),getSharedPreferences(GlassConfig.PREFS,0).getBoolean("white_symbols",true));
+            LiquidGlassDrawable.configure(new String(shader.readAllBytes(),StandardCharsets.UTF_8),BitmapFactory.decodeStream(plate),getSharedPreferences(GlassConfig.PREFS,0).getBoolean("white_symbols",true),getSharedPreferences(GlassConfig.PREFS,0).getBoolean("screen_match",true));
         }catch(Exception e){throw new IllegalStateException("Missing preview assets",e);}
         setContentView(new PreviewView());
     }
