@@ -1,3 +1,5 @@
+**Experimental Kashi launcher add-on:** [APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.1.0) · [Buildable source](launcher-addon). Adds an optional glass icon pack and Xiaomi native background-blur calls through LSPosed. Root required; physical-device blur testing is pending.
+
 # Smoky Glass Frosted Gray v6
 
 Developer: **devarix**

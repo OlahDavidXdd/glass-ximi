@@ -1,0 +1,25 @@
+{
+  "release": "Kashi V7.5",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "hook_targets": {
+    "Lcom/miui/home/icon/LauncherIconImageView;": {
+      "superclass": "Landroid/widget/ImageView;",
+      "binding_methods": []
+    },
+    "Lcom/miui/home/launcher/ShortcutInfo;": {
+      "superclass": "Lcom/miui/home/model/api/ItemInfoWithIconAndMessage;",
+      "binding_methods": [
+        "getIntent",
+        "getPackageName"
+      ]
+    },
+    "Lcom/miui/home/settings/IconCustomizeFragment;": {
+      "superclass": "Lmiuix/preference/PreferenceFragment;",
+      "binding_methods": [
+        "onCreatePreferences",
+        "onResume"
+      ]
+    }
+  },
+  "device_blur_verified": false
+}

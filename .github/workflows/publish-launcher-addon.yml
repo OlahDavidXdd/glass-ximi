@@ -1,0 +1,51 @@
+name: Build devarix Glass for Kashi
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - launcher-addon/**
+      - .github/workflows/publish-launcher-addon.yml
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: launcher-addon/**/*.gradle
+      - name: Build and test standalone source
+        working-directory: launcher-addon
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --no-daemon --console=plain
+      - name: Verify and package
+        run: |
+          mkdir -p release-output
+          cp launcher-addon/app/build/outputs/apk/debug/app-debug.apk release-output/devarix-Glass-Kashi-0.1.0-experimental.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose release-output/devarix-Glass-Kashi-0.1.0-experimental.apk
+          python3 launcher-addon/scripts/validate-apk.py release-output/devarix-Glass-Kashi-0.1.0-experimental.apk release-output/validation.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          root=Path('launcher-addon')
+          with zipfile.ZipFile('release-output/devarix-Glass-Kashi-0.1.0-source.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
+              for item in root.rglob('*'):
+                  relative=item.relative_to(root)
+                  if not item.is_file() or any(part in ['build','.gradle','tooling'] for part in relative.parts) or item.name=='local.properties':
+                      continue
+                  archive.write(item,Path('launcher-addon')/relative)
+          PY
+      - name: Publish experimental APK and source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view kashi-glass-addon-v0.1.0 >/dev/null 2>&1; then
+            gh release create kashi-glass-addon-v0.1.0 --target main --title 'devarix Glass for Kashi — experimental 0.1.0' --notes-file launcher-addon/RELEASE_NOTES.md --prerelease --draft
+          fi
+          gh release upload kashi-glass-addon-v0.1.0 release-output/devarix-Glass-Kashi-0.1.0-experimental.apk release-output/devarix-Glass-Kashi-0.1.0-source.zip release-output/validation.json --clobber
+          gh release edit kashi-glass-addon-v0.1.0 --draft=false --prerelease --notes-file launcher-addon/RELEASE_NOTES.md

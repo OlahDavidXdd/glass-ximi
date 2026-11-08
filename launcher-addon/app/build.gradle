@@ -1,0 +1,10 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'io.github.devarix.kashiglass'
+    compileSdk 35
+    defaultConfig { applicationId 'io.github.devarix.kashiglass'; minSdk 31; targetSdk 35; versionCode 1; versionName '0.1.0-experimental' }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    androidResources { noCompress += ['png'] }
+    buildTypes { release { minifyEnabled false } }
+}
+dependencies { compileOnly 'de.robv.android.xposed:api:82'; testImplementation 'junit:junit:4.13.2' }

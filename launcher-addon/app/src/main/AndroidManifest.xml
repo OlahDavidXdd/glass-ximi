@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><package android:name="com.miui.home" /></queries>
+    <application android:label="devarix Glass" android:icon="@drawable/glass_app" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:supportsRtl="true">
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="Optional gray glass icons and Xiaomi native backdrop blur for Kashi launcher. Experimental." />
+        <meta-data android:name="xposedminversion" android:value="82" />
+        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+        <activity android:name=".SettingsActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity>
+        <provider android:name=".GlassProvider" android:authorities="io.github.devarix.kashiglass.provider" android:exported="true" android:grantUriPermissions="false" />
+    </application>
+</manifest>
