@@ -42,11 +42,12 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static final ThreadLocal<Boolean> INTERNAL=ThreadLocal.withInitial(()->false);
     private static Context context;
     private static WeakReference<Activity> lastActivity=new WeakReference<>(null);
-    private static volatile boolean enabled=false,blur=false,automatic=true;
+    private static volatile boolean enabled=false,blur=false,automatic=true,whiteSymbols=true;
     private static int radius=24;
     private static volatile String style="liquid";
     private static WallpaperBackdrop wallpaper;
     private static LauncherSurfaces surfaces;
+    private static volatile boolean selfRestartReady;
     private static volatile Set<String> packages=Collections.emptySet();
     private static String lastStatus="",lastBindings="";
     private static final class State {
@@ -221,26 +222,37 @@ public final class GlassHook implements IXposedHookLoadPackage {
 
         wallpaper=new WallpaperBackdrop(context,()->MAIN.post(GlassHook::refreshLiquid),GlassHook::report);
         try{context.getContentResolver().registerContentObserver(GlassProvider.SETTINGS,false,new ContentObserver(MAIN){@Override public void onChange(boolean selfChange){reload();}});}catch(Throwable e){error("OBSERVER_ERROR",e);}
+        try{context.getContentResolver().registerContentObserver(GlassProvider.RESTART,false,new ContentObserver(MAIN){@Override public void onChange(boolean selfChange){selfRestart();}});selfRestartReady=true;}catch(Throwable e){error("RESTART_OBSERVER_ERROR",e);}
         reload();
+    }
+    private static void selfRestart(){
+        IO.execute(()->{
+            try{Bundle request=new Bundle();request.putInt("pid",android.os.Process.myPid());
+                Bundle response=context.getContentResolver().call(GlassProvider.RESTART,"consume_restart",null,request);
+                if(response!=null&&response.getString("token")!=null){debug("SELF_RESTART","Acknowledged; exiting own launcher process");MAIN.postDelayed(()->android.os.Process.killProcess(android.os.Process.myPid()),150);}
+            }catch(Throwable e){error("SELF_RESTART_ERROR",e);}
+        });
     }
     private static void reload(){
         IO.execute(()->{
             try{
-                Bundle config=context.getContentResolver().call(GlassProvider.SETTINGS,"settings",null,null);
+                Bundle identity=new Bundle();identity.putInt("hook_code",BuildConfig.VERSION_CODE);identity.putString("hook_version",BuildConfig.VERSION_NAME);identity.putInt("hook_pid",android.os.Process.myPid());identity.putString("hook_capabilities",selfRestartReady?HookVersion.RESTART_CAPABILITY:"");
+                Bundle config=context.getContentResolver().call(GlassProvider.SETTINGS,"settings",null,identity);
                 if(config==null)throw new IllegalStateException("Provider unavailable");
                 debugEnabled=config.getBoolean("debug_logs",true);
                 debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
+                boolean nextWhite=config.getBoolean("white_symbols",true);
                 boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true);
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
                 MAIN.post(()->{
-                    boolean replace=!style.equals(nextStyle)||blur!=nextBlur||radius!=nextRadius||automatic!=nextAutomatic||!nextEnabled;
+                    boolean replace=!style.equals(nextStyle)||blur!=nextBlur||radius!=nextRadius||automatic!=nextAutomatic||whiteSymbols!=nextWhite||!nextEnabled;
                     if(replace)TRANSITIONS.evictAll();
                     if(replace)for(View view:new ArrayList<>(STATES.keySet()))if(view!=null)restore(view,state(view));
-                    enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;packages=nextPackages;FAILED.clear();
-                    LiquidGlassDrawable.configure(shader,plate);wallpaper.configure(enabled&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
+                    enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;whiteSymbols=nextWhite;packages=nextPackages;FAILED.clear();
+                    LiquidGlassDrawable.configure(shader,plate,whiteSymbols);wallpaper.configure(enabled&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
                     if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,nextDrawer,blur,radius,wallpaper);
                     report(enabled?"Selected "+style+" material. Waiting for mapped icons to bind.":"Launcher connected. Glass icons are disabled.");
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}

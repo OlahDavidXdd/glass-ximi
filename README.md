@@ -1,4 +1,4 @@
-**Latest launcher test:** [0.6.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.6.0-test) · iPhone-reference gray frost, matching dock/search, glass app drawer, automatic icons and native animation-input fixes. [Buildable source and setup](launcher-addon). Requires root/LSPosed; new behavior needs phone verification. Earlier builds remain under [Releases](https://github.com/OlahDavidXdd/glass-ximi/releases).
+**Latest launcher test:** [0.7.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.7.0-test) · Clearer glass, white center symbols, loaded-hook version checks and connected-hook restart. [Setup and buildable source](launcher-addon). **After installing from an older running hook, reboot once** if root restart is blocked. Previous builds remain under [Releases](https://github.com/OlahDavidXdd/glass-ximi/releases).
 
 # Smoky Glass Frosted Gray v6
 

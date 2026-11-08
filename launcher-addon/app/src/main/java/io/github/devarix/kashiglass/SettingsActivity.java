@@ -9,7 +9,7 @@ import android.widget.*;
 
 public final class SettingsActivity extends Activity {
     private android.content.SharedPreferences prefs;
-    private TextView status;
+    private TextView status,restartResult;
     private Switch iconsSwitch,blurSwitch;
     private final Handler main=new Handler(Looper.getMainLooper());
     private long checkStarted;
@@ -28,6 +28,7 @@ public final class SettingsActivity extends Activity {
         Spinner material=new Spinner(this);material.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Liquid Glass · QWEA0 renderer","Frosted Glass · previous style"}));material.setSelection("frosted".equals(GlassConfig.style(prefs.getString("style","liquid")))?1:0);page.addView(material);
         material.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){} public void onItemSelected(AdapterView<?> p,android.view.View v,int position,long id){String style=position==0?"liquid":"frosted";if(!style.equals(GlassConfig.style(prefs.getString("style","liquid")))){prefs.edit().putString("style",style).commit();changed();}}});
         iconsSwitch=toggle(page,"Use built-in glass icons","700 grayscale mappings · 512 px symbols · Liquid or Frosted material","icons");
+        toggle(page,"White center symbols","White symbols with fine detail retained. Turn off to keep the original silver shading.","white_symbols");
         toggle(page,"Automatic glass icons","Creates a silver foreground and glass finish for apps without a bundled mapping. Bundled artwork always takes priority.","automatic");
         toggle(page,"Glass dock","Rounded gray glass behind the dock icons. Uses the same lens, reflections and blur strength as Liquid Glass icons.","dock_glass");
         toggle(page,"Glass search bar","Matching glass capsule for Kashi’s built-in home and drawer search bars. Their controls and native width are retained.","search_glass");
@@ -41,7 +42,8 @@ public final class SettingsActivity extends Activity {
             Toast.makeText(this,"Icons enabled. Restart launcher, then open your home screen.",Toast.LENGTH_LONG).show();
         });
         Button restart=new Button(this);restart.setText("Restart launcher");page.addView(restart);
-        text(page,"Requests root only when tapped. Restarts System launcher for your current Android user; your home layout is kept. If root is denied, reboot the phone to apply the LSPosed module.",14,0xffb8b8b8);
+        restartResult=text(page,prefs.getString("restart_status",""),14,0xffdddddd);
+        text(page,"Uses the connected launcher hook when supported. Older hooks use a root fallback. If root execution is blocked, reboot the phone once and check Loaded hook below. Your home layout is kept.",14,0xffb8b8b8);
         restart.setOnClickListener(v->restartLauncher(restart));
         Button check=new Button(this);check.setText("Check launcher connection");page.addView(check);
         check.setOnClickListener(v->{checkStarted=System.currentTimeMillis();checking=true;changed();updateStatus();
@@ -78,9 +80,36 @@ public final class SettingsActivity extends Activity {
         long connected=prefs.getLong("connected_at",0);
         String connection=connected==0?"Launcher has not connected. Check LSPosed scope and restart launcher.":"Last launcher settings read: "+android.text.format.DateFormat.format("HH:mm:ss",connected);
         if(checkStarted>0&&connected<checkStarted)connection=checking?"Checking… Open the home screen now.":"No fresh launcher response. Check LSPosed scope, unlock the phone, and restart launcher.";
-        status.setText(connection+"\n"+prefs.getString("bindings","No icon binding counts received yet. Open the home screen or app drawer.")+"\n"+prefs.getString("surfaces","Waiting for dock/search surface bindings.")+"\nLogged animation replacements: "+prefs.getInt("animation_replacements",0)+"\n"+prefs.getString("last_animation","No native animation inputs logged yet.")+"\n"+prefs.getString("status","Waiting for launcher."));
+        String hook=HookVersion.status(BuildConfig.VERSION_CODE,BuildConfig.VERSION_NAME,prefs.getInt("hook_code",0),prefs.getString("hook_version","unreported"),connected);
+        status.setText(hook+"\n"+connection+"\n"+prefs.getString("bindings","No icon binding counts received yet. Open the home screen or app drawer.")+"\n"+prefs.getString("surfaces","Waiting for dock/search surface bindings.")+"\nLogged animation replacements: "+prefs.getInt("animation_replacements",0)+"\n"+prefs.getString("last_animation","No native animation inputs logged yet.")+"\n"+prefs.getString("status","Waiting for launcher."));
     }
     private void restartLauncher(Button button){
+        if(HookVersion.canRestart(prefs.getString("hook_capabilities",""),prefs.getInt("hook_pid",0))){restartThroughHook(button);return;}
+        restartWithRoot(button);
+    }
+    private void restartThroughHook(Button button){
+        button.setEnabled(false);button.setText("Requesting launcher restart…");
+        new Thread(()->{
+            try{Bundle result=getContentResolver().call(GlassProvider.RESTART,"request_restart",null,null);
+                String token=result==null?null:result.getString("token");if(token==null)throw new IllegalStateException("No restart token");
+                main.post(()->awaitRestart(button,token,SystemClock.elapsedRealtime()+3500));
+            }catch(Exception e){DebugLog.event(this,"SELF_RESTART_REQUEST_ERROR",android.util.Log.getStackTraceString(e));main.post(()->finishRestart(button,"The launcher did not accept the restart request. Reboot the phone to load the updated hook."));}
+        },"glass-hook-restart").start();
+    }
+    private void awaitRestart(Button button,String token,long deadline){
+        if(isDestroyed())return;
+        if(token.equals(prefs.getString("restart_ack",""))){
+            finishRestart(button,"Launcher hook acknowledged restart. Opening home; return here to check the loaded version.");
+            main.postDelayed(()->{if(isDestroyed())return;try{startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(GlassConfig.LAUNCHER).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}catch(ActivityNotFoundException e){Toast.makeText(this,"Press Home to start System launcher.",Toast.LENGTH_LONG).show();}},300);
+        }else if(SystemClock.elapsedRealtime()>=deadline)finishRestart(button,"No launcher acknowledgement. Restart is unconfirmed. Reboot the phone to load the updated hook.");
+        else main.postDelayed(()->awaitRestart(button,token,deadline),100);
+    }
+    private void finishRestart(Button button,String message){
+        if(isDestroyed())return;
+        prefs.edit().putString("restart_status",message).apply();button.setEnabled(true);button.setText("Restart launcher");
+        if(restartResult!=null)restartResult.setText(message);Toast.makeText(this,message,Toast.LENGTH_LONG).show();updateStatus();
+    }
+    private void restartWithRoot(Button button){
         DebugLog.event(this,"RESTART_REQUEST","Current user="+android.os.Process.myUid()/100000);
         button.setEnabled(false);button.setText("Waiting for root…");
         new Thread(()->{
@@ -89,12 +118,12 @@ public final class SettingsActivity extends Activity {
                 String command=LauncherRestart.command(android.os.Process.myUid()/100000);
                 process=new ProcessBuilder("su","-c",command).redirectOutput(new java.io.File("/dev/null")).redirectError(new java.io.File("/dev/null")).start();
                 if(!process.waitFor(25,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();result="Root request timed out. Open the home screen. If needed, reboot to apply the module.";}
-                else result=process.exitValue()==0?"Launcher restarted. Open the home screen, then return here to check icon counts.":"Restart failed or root denied. Allow root for devarix Glass and retry, or reboot the phone.";
-            }catch(Exception e){DebugLog.event(this,"RESTART_ERROR",android.util.Log.getStackTraceString(e));result="Could not restart launcher: "+e.getClass().getSimpleName()+". Reboot the phone instead.";}
+                else result=process.exitValue()==0?"Root restart command completed. Open home, then check Loaded hook to confirm the version.":"Restart failed or root denied. Allow root for devarix Glass and retry, or reboot the phone.";
+            }catch(Exception e){DebugLog.event(this,"RESTART_ERROR",android.util.Log.getStackTraceString(e));result=e instanceof java.io.IOException&&String.valueOf(e.getMessage()).contains("Permission denied")?"Root execution is blocked for devarix Glass. The launcher was NOT restarted. Reboot the phone to load the updated hook.":"Could not restart launcher: "+e.getClass().getSimpleName()+". Reboot the phone instead.";}
             finally{if(process!=null&&process.isAlive())process.destroyForcibly();}
             DebugLog.event(this,"RESTART_RESULT",result);
             final String message=result;
-            main.post(()->{if(isDestroyed())return;button.setEnabled(true);button.setText("Restart launcher");Toast.makeText(this,message,Toast.LENGTH_LONG).show();updateStatus();});
+            main.post(()->finishRestart(button,message));
         },"glass-launcher-restart").start();
     }
     @Override protected void onActivityResult(int request,int result,Intent data){
@@ -115,7 +144,7 @@ public final class SettingsActivity extends Activity {
     private void logFailure(Exception e){DebugLog.event(this,"EXPORT_ERROR",android.util.Log.getStackTraceString(e));main.post(()->{if(!isDestroyed())Toast.makeText(this,"Log action failed: "+e.getClass().getSimpleName(),Toast.LENGTH_LONG).show();});}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private TextView text(LinearLayout page,String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(10),0,dp(12));page.addView(t);return t;}
-    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
-    @Override protected void onResume(){super.onResume();updateStatus();}
+    private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key)||"white_symbols".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
+    @Override protected void onResume(){super.onResume();updateStatus();getContentResolver().notifyChange(GlassProvider.SETTINGS,null);}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);getContentResolver().unregisterContentObserver(observer);super.onDestroy();}
 }

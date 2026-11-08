@@ -1,22 +1,21 @@
 Developer: **devarix**
 
-## 0.6.0 — iPhone reference glass, frosted drawer and native animation inputs
+## 0.7.0 — Clear glass, white centers and loaded-hook verification
 
-- Softer gray frost, a curved gloss cap, finer double rim and brighter silver automatic icons, tuned from the supplied iPhone photo. No blue tint or dispersion.
-- Adds **Glass app drawer**, on by default: a frosted wallpaper-backed sheet behind the native grid and search results. Only identified structural backgrounds are cleared; they are restored on disable.
-- Replaces direct Drawable inputs to **FloatingIconView2.init** and **FloatingIconLayer2.init/initDrawable**, which can bypass the icon getters hooked in 0.5.0. Narrow class/signature matching is checked against the current public Kashi V7.5 APK.
-- Hands each animation its own mutable bitmap, keeping native fill/recycle operations away from the snapshot cache.
-- Keeps snapshots across wallpaper-offset changes, warms them at staggered times, and captures a detached icon at its original geometry. A cold worker-thread fallback uses static glass artwork, not a stock icon; it is logged separately.
-- Adds **Logged animation replacements** and last-event details to status/log export. Includes automatic icons, matching dock/search, preview, restart and logging controls. Previous releases remain available.
+- More transparent-looking glass: lighter tint, reduced fog/dark wash and a clearer fallback plate. Keeps gray refraction, curved highlights and bright borders.
+- **White center symbols**, on by default. Foregrounds are white while fine shading is retained through alpha; the glass body is not tinted white. Turn off for the original silver artwork. Preview follows the selection.
+- Adds **Loaded hook** version/PID reporting. The installed app version is no longer treated as evidence that System launcher has loaded the update. Missing/old reports explicitly request a reboot.
+- Adds connected-hook restart without executing `su` from the add-on, once a supporting hook is loaded. An explicit, authenticated, single-use request expires after five seconds and targets only the reported launcher process. Root remains a fallback for older hooks; denial/unconfirmed restarts stay visible.
+- Retains the glass drawer/dock/search, automatic icons, native animation-input fixes and log export. Earlier releases remain available.
 
-## Apply and check the flash
+## Important for the supplied log
 
-Install, enable **devarix Glass** in LSPosed scoped to **System launcher (`com.miui.home`)**, then choose **Enable Liquid Glass → Restart launcher**. Leave **Glass app drawer** and the other glass surface switches on.
+`Cannot run program "su": error=13, Permission denied` means the launcher was **not restarted**. The old surface status format also indicates an older hook may still be running despite `APP_OPEN 0.6.0-test`.
 
-For a clean test: **Diagnostic logging on → Clear logs → Restart launcher → open/close apps → return to status**. If the flash remains, export the log file and report **Logged animation replacements**, affected apps, whether it occurs opening/closing, and launcher version. A nonzero counter establishes that an input hook ran; it does not prove every animation frame is correct. The previous fix did not resolve the reported phone behavior, and this new fix still needs phone verification.
+Install this APK → enable devarix Glass in LSPosed scoped to **System launcher (`com.miui.home`)** → **Enable Liquid Glass** → **reboot the phone once**. Then open home and verify **Loaded hook: 0.7.0-test — matches app**. The new connected-hook restart route becomes available only after the new hook loads.
 
-Real refraction/blur samples the static wallpaper. Animation snapshots stay static; GPU readback/cold-start failures can use a glass artwork fallback. Android system splash icons are outside this launcher's scope. No wallpaper images, system logcat, automatic uploads or launcher data clearing are added.
+If the icon flash remains after that version check, use **Clear logs → open/close apps → Export logs (.txt)** and include **Logged animation replacements**. The earlier 0.6.0 animation changes still need a test with that code actually loaded on the phone. No new universal animation-fix claim is made in this release.
 
-Build, unit tests, lint, APK signature, curated assets and unchanged shader provenance are checked. **New material/drawer/transition behavior has not been verified on a physical device.**
+LSPosed requirements and static-wallpaper capture limits remain. The restart acknowledgement is not proof of successful reload; check the loaded version. Logs stay local until exported; no Internet permission or launcher data clearing is added.
 
-If the development key prevents updating, uninstall **devarix Glass only**, reinstall and re-enable its LSPosed scope. Keep System launcher installed.
+Build, tests, lint, signature, assets and unchanged shader provenance are checked. **New phone rendering/restart behavior is not physically verified.** If a development-key update is rejected, uninstall **devarix Glass only**, reinstall, re-enable LSPosed scope and reboot. Keep System launcher installed.

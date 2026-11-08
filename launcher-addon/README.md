@@ -9,6 +9,18 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Clearer glass, white symbols and loaded version (0.7.0)
+
+[Download 0.7.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.7.0-test). Reduces the body tint, fog, dark wash and fallback plate opacity, while retaining refraction and the bright rim. **White center symbols** is on by default for Liquid Glass/automatic foregrounds. White RGB is applied only to the symbol paint, with fine shading represented by alpha so lens/details are retained; the glass background is not whitened. Switch it off to keep the original silver art. Preview follows the same option. The curated Frosted asset set remains available.
+
+The supplied log contains `Cannot run program "su": error=13, Permission denied`, which means the root restart never ran. It also shows a surface status format from the older hook while the app reports 0.6.0. Updating the APK does not replace classes already loaded inside System launcher. The new **Loaded hook** line compares a version/PID/capability report from the launcher against the installed APK. An old hook that sends no identity is explicitly marked unreported, rather than assumed current. This identity exchange is independent of the diagnostic logging switch.
+
+For the first update from that state: install the APK, enable the module in LSPosed for **System launcher (`com.miui.home`)**, tap **Enable Liquid Glass**, then **reboot the phone once**. Return home and check that **Loaded hook: 0.7.0-test** matches the app. If it is unreported or different, the new code is not yet confirmed loaded; the animation fix cannot be judged from the app version alone.
+
+Once this hook is loaded, **Restart launcher** can ask it to exit its own process, then open Home. This route does not execute `su` from the add-on, but LSPosed itself still has its usual installation requirements. A five-second, one-use request is restricted to the add-on UID, acknowledged only by the authenticated launcher caller with the recorded PID, and consumed atomically. Acknowledgement is not treated as proof that a new hook version loaded: verify the version line after returning home. The original fixed-package/current-user root restart remains a fallback for hooks without this capability. Root denial, timeout and acknowledgement failure are shown persistently; they never report a completed restart as a verified module reload. No launcher database or layout is cleared.
+
+Existing drawer, dock, search, automatic icon, animation-input and log controls remain available. New rendering and restart behavior still need a phone test.
+
 ## iPhone reference finish, drawer and native animation fix (0.6.0)
 
 [Download 0.6.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.6.0-test). The finish now has softer neutral frost, a curved upper highlight, a fine double rim and brighter silver automatic glyphs, based on the supplied iPhone photo. Grayscale remains enabled and dispersion remains off. The unchanged QWEA0 shader still performs the optical refraction; the adapter supplies the material settings and reflection overlay.
