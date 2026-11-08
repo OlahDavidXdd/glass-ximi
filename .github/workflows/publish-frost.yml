@@ -1,0 +1,24 @@
+name: Publish Frosted Gray theme
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-frost.yml]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble verified theme and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat gray-hd-v6/Smoky_Glass_Frosted_Gray_HD_v6.mtz.part-* > Smoky_Glass_Frosted_Gray_HD_v6.mtz
+          echo '9496aa536f217d6ce43dab459220be66ae8cdf0f720dcccbf834016652258de3  Smoky_Glass_Frosted_Gray_HD_v6.mtz' | sha256sum --check
+          if ! gh release view gray-hd-v6 >/dev/null 2>&1; then
+            gh release create gray-hd-v6 --target main --title 'Smoky Glass Frosted Gray v6 — devarix' --notes-file gray-hd-v6/release-notes.md --draft
+          fi
+          gh release upload gray-hd-v6 Smoky_Glass_Frosted_Gray_HD_v6.mtz Smoky_Glass_Frosted_Gray_Preview.jpg Smoky_Glass_Frosted_Gray_Detail.jpg Smoky_Glass_Frosted_Gray_Apps_v6.jpg Frosted_Gray_v6_Striped_Preview.png --clobber
+          gh release edit gray-hd-v6 --draft=false --notes-file gray-hd-v6/release-notes.md
