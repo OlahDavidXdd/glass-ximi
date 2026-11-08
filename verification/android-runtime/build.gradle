@@ -1,0 +1,39 @@
+plugins { id 'java' }
+java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+def sdk = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')
+if (!sdk) throw new GradleException('Set ANDROID_HOME to an SDK containing platforms/android-35/android.jar')
+if (findProperty('verificationBuildDir')) layout.buildDirectory.set(file(findProperty('verificationBuildDir')))
+def production = file('../../launcher-addon/app/src/main/java')
+sourceSets.main.java {
+    srcDirs = [production]
+    include '**/OwnedTransitionDrawable.java', '**/LiquidGlassDrawable.java', '**/GlassSurface.java', '**/GlassBackdrop.java', '**/BackdropGeometry.java', '**/NativeScreenBackdrop.java', '**/SourceVisibility.java', '**/AnimationTargetResolver.java'
+}
+if (findProperty('ownedBaselineRoot')) {
+    def original = new File(production, 'io/github/devarix/kashiglass/OwnedTransitionDrawable.java').canonicalFile
+    sourceSets.main.java.exclude { entry -> entry.file.canonicalFile == original }
+    sourceSets.main.java.srcDir file(findProperty('ownedBaselineRoot'))
+}
+dependencies {
+    compileOnly files("${sdk}/platforms/android-35/android.jar")
+    testImplementation files("${sdk}/platforms/android-35/android.jar")
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+}
+// Java projects do not apply AGP's AAR transform; expose AndroidX's real classes.jar files.
+def aarClasses = files(provider {
+    configurations.testRuntimeClasspath.files.findAll { it.name.endsWith('.aar') }.collect {
+        zipTree(it).matching { include 'classes.jar' }.singleFile
+    }
+})
+test {
+    classpath += aarClasses
+    maxHeapSize = '1100m'
+    maxParallelForks = 1
+    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+    systemProperty 'glass.results', file('results').absolutePath
+    systemProperty 'glass.assets', file('../../launcher-addon/app/src/main/assets').absolutePath
+    ['https.proxyHost','https.proxyPort','http.proxyHost','http.proxyPort','javax.net.ssl.trustStore','javax.net.ssl.trustStorePassword'].each { key ->
+        if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+    }
+    testLogging { events 'passed', 'failed', 'skipped'; exceptionFormat 'full' }
+}

@@ -1,0 +1,57 @@
+name: Verify Android snapshot runtime
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - verification/android-runtime/**
+      - launcher-addon/app/src/main/java/**
+      - launcher-addon/app/src/main/assets/glyphs/**
+      - .github/workflows/verify-android-runtime.yml
+permissions:
+  contents: read
+jobs:
+  android-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: verification/android-runtime/*.gradle
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-4.14.1-android-33-35-${{ runner.os }}
+      - name: Execute current production classes with native Android graphics
+        run: ./launcher-addon/gradlew -p verification/android-runtime test --no-daemon --console=plain
+      - name: Require the older implementation to reproduce the two ownership bugs
+        run: |
+          python3 verification/android-runtime/scripts/baseline.py
+          set +e
+          ./launcher-addon/gradlew -p verification/android-runtime test -PownedBaselineRoot=results/baseline-source -PverificationBuildDir=baseline-build --tests io.github.devarix.kashiglass.OwnedTransitionRuntimeTest --no-daemon --console=plain > verification/android-runtime/results/baseline.log 2>&1
+          baseline_exit=$?
+          set -e
+          if [ "$baseline_exit" -eq 0 ]; then
+            cat verification/android-runtime/results/baseline.log
+            exit 1
+          fi
+          python3 verification/android-runtime/scripts/baseline.py check
+      - name: Summarize results and limits
+        run: |
+          python3 verification/android-runtime/scripts/report.py
+          cat verification/android-runtime/results/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve executable test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-native-graphics-verification
+          path: |
+            verification/android-runtime/build/test-results/test
+            verification/android-runtime/build/reports/tests/test
+            verification/android-runtime/baseline-build/test-results/test
+            verification/android-runtime/results
+          retention-days: 30

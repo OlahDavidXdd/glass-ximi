@@ -1,0 +1,18 @@
+# Phone-free Android runtime verification
+
+Runs the production drawable/snapshot classes under Robolectric 4.14.1 with **native graphics** on Android API 33 and 35. These are executable Android bitmap/Canvas tests, separate from the browser motion simulation and the add-on's pure Java tests.
+
+The tests use the original production Java files directly; they do not substitute a web animation or a duplicate snapshot implementation. They check independent pixel ownership, cloning after native-copy recycling, Frosted clone isolation, transparent holes/fade alpha, invalid templates, real bundled glyph rendering, hidden-drawable rendering and snapshot independence from live source alpha.
+
+Requires Java 17, Android SDK platform 35, and Maven/Google Maven access:
+
+```sh
+export ANDROID_HOME=/path/to/android-sdk
+./launcher-addon/gradlew -p verification/android-runtime test --no-daemon --console=plain
+```
+
+The report is `verification/android-runtime/build/reports/tests/test/index.html`.
+
+This verifies Android graphics code in a host-side Android test runtime. It does **not** boot the APK in HyperOS, load LSPosed into Kashi, execute Xiaomi's proprietary backdrop/compositor APIs, or establish that the on-device open/close gestures, source hiding and frame timing are correct. Those require a compatible HyperOS runtime, which is not present in this execution environment. No APK or existing release is changed by running this suite.
+
+The separate **Verify Android snapshot runtime** GitHub workflow runs this suite and an expected-failure negative control using the pinned 0.9.0 drawable source in `fixtures/`. Four expected failures (two bugs across two Android versions) must reproduce in the older implementation while the current 16 tests pass. This guards against a test suite that simply passes regardless of the fix. The workflow uploads XML/HTML reports, a structured coverage report and native-Canvas PNG output. It does not rebuild or replace the released APK.

@@ -1,0 +1,15 @@
+{
+  "tag": "kashi-glass-addon-v0.10.0-test",
+  "commit": "6aa5e47e35fb6c34b1f42094b4b4db2daae3e78a",
+  "apk_sha256": "774ee3c00dcb3b8f6fd081266f4637412750cae9dd2f63b25ba6693efb4d67ef",
+  "production_source_sha256": {
+    "OwnedTransitionDrawable.java": "bf4dcfac0c4b69e4a4a5aa403a1f81d274b3a5c5cd35be3a30395c92be4e3930",
+    "LiquidGlassDrawable.java": "6ccd9cd192c79084438147dfcbb9916118bbc78f73083f2c28f85296cc6409c4",
+    "GlassSurface.java": "1fc8aa3607902ddc5fbfc7043604703a1f28204bf20cf98ab9c3e9c8176eec44",
+    "GlassBackdrop.java": "547d9f7996556a10caacba94ff5b902a9e0cbc50f2a72cc23a99eaa1a650533b",
+    "BackdropGeometry.java": "2f0b7806fb4a7b792129adf9802eb7230fe58d33fa2395ce111b8504b9c30898",
+    "NativeScreenBackdrop.java": "eaccb4982fa6f655e1f8290f69bed57bd572566222e50c078d542ef0db3924ab",
+    "SourceVisibility.java": "2d76730b0dd712e27510a24b259e2694f199a58cf240230e986abde5bc760aec",
+    "AnimationTargetResolver.java": "55ea252cf6679f5f6c855f076047dda394002f9a59dc878e2cd535ee85254792"
+  }
+}

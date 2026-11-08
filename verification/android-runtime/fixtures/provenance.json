@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/OlahDavidXdd/glass-ximi",
+  "commit": "89d0cc0b48fbccf901198747ccc265096a8896dd",
+  "path": "launcher-addon/app/src/main/java/io/github/devarix/kashiglass/OwnedTransitionDrawable.java",
+  "sha256": "9477b43d20fc77362840f7fdd209d238eff60744046a7491976bb726ce199bc6",
+  "purpose": "Negative control: original released implementation must fail the recycling/clone isolation tests."
+}
