@@ -18,6 +18,7 @@ final class LiquidGlassDrawable extends Drawable {
     static void configure(String shader,Bitmap fallback){source=shader;plate=fallback;}
     private final WeakReference<View> owner;
     private final Bitmap glyph;
+    private final int surface;
     private final GlassBackdrop backdrop;
     private final Consumer<String> status;
     private final boolean blur;
@@ -38,7 +39,8 @@ final class LiquidGlassDrawable extends Drawable {
     }};
     private int alpha=255,lastW,lastH,lastMargin;
     private float lastBlur=-1,lastPress=-1;
-    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status){this.owner=new WeakReference<>(view);this.glyph=glyph;this.backdrop=backdrop;this.blur=blur;this.strength=strength;this.status=status;}
+    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status){this(view,glyph,backdrop,blur,strength,status,GlassSurface.ICON);}
+    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status,int surface){this.surface=surface;this.owner=new WeakReference<>(view);this.glyph=glyph;this.backdrop=backdrop;this.blur=blur;this.strength=strength;this.status=status;}
     @Override public void draw(Canvas canvas){
         Rect b=getBounds();if(b.isEmpty())return;View view=owner.get();if(view==null)return;
         if(!canvas.isHardwareAccelerated()&&!reportedSoftware){reportedSoftware=true;status.accept("QWEA0 lens unavailable on a software canvas. Static fallback only.");}
@@ -47,9 +49,12 @@ final class LiquidGlassDrawable extends Drawable {
         try{
             boolean drawn=false;
             if(!broken&&canvas.isHardwareAccelerated()&&backdrop.isAvailable())try{drawn=drawLens(canvas,view,b);}catch(Throwable e){broken=true;status.accept("QWEA0 lens unavailable on this driver: "+e.getClass().getSimpleName()+". Showing the clearly marked static fallback.");}
-            if(!drawn&&plate!=null){target.set(b);canvas.drawBitmap(plate,null,target,foreground);}
+            if(!drawn){
+                if(surface==GlassSurface.ICON&&plate!=null){target.set(b);canvas.drawBitmap(plate,null,target,foreground);}
+                else if(surface!=GlassSurface.ICON){glass.setShader(null);glass.setColor(0x60636363);float r=GlassSurface.radius(b.width(),b.height(),surface);canvas.drawRoundRect(new RectF(b),r,r,glass);glass.setColor(Color.WHITE);}
+            }
             drawSurface(canvas,b,view.isPressed());
-            target.set(b);canvas.drawBitmap(glyph,null,target,foreground);
+            if(glyph!=null){target.set(b);canvas.drawBitmap(glyph,null,target,foreground);}
         }finally{canvas.restoreToCount(saved);}
     }
     private boolean drawLens(Canvas canvas,View view,Rect b){
@@ -60,7 +65,7 @@ final class LiquidGlassDrawable extends Drawable {
         int margin=(int)Math.ceil(Math.max(small*.38f,blurRadius*3+2));
         float press=0;for(int state:getState())if(state==android.R.attr.state_pressed)press=1;
         if(w!=lastW||h!=lastH||margin!=lastMargin||lastBlur!=blurRadius||press!=lastPress){
-            float r=small*.27f;
+            float r=GlassSurface.radius(w,h,surface);
             shader.setFloatUniform("margin",(float)margin);shader.setFloatUniform("viewSize",(float)w,(float)h);
             shader.setFloatUniform("shape1",w*.5f,h*.5f,w*.5f-.5f,h*.5f-.5f);shader.setFloatUniform("shape1L",w*.5f,h*.5f,w*.5f-.5f,h*.5f-.5f);
             shader.setFloatUniform("radii1",r,r,r,r);shader.setFloatUniform("rimSoft",.7f);
@@ -77,13 +82,13 @@ final class LiquidGlassDrawable extends Drawable {
         int rw=w+2*margin,rh=h+2*margin;
         node.setPosition(b.left-margin,b.top-margin,b.right+margin,b.bottom+margin);
         Canvas recording=node.beginRecording(rw,rh);boolean captured;
-        try{captured=backdrop.draw(recording,view,b,margin);}finally{node.endRecording();}
+        try{captured=surface==GlassSurface.ICON?backdrop.draw(recording,view,b,margin):backdrop.drawSurface(recording,view,b,margin);}finally{node.endRecording();}
         if(!captured)return false;
         canvas.drawRenderNode(node);
         status.accept("QWEA0 refraction/blur render commands submitted using a static wallpaper. Physical-device appearance still needs verification.");return true;
     }
     private void drawSurface(Canvas canvas,Rect bounds,boolean pressed){
-        float size=Math.min(bounds.width(),bounds.height()),r=size*.27f;
+        float size=Math.min(bounds.width(),bounds.height()),r=GlassSurface.radius(bounds.width(),bounds.height(),surface);
         RectF body=new RectF(bounds);int saved=canvas.save();Path clip=new Path();clip.addRoundRect(body,r,r,Path.Direction.CW);canvas.clipPath(clip);
         glass.setStyle(Paint.Style.FILL);
         glass.setShader(new LinearGradient(body.left,body.top,body.right,body.bottom,new int[]{0x35ffffff,0x04ffffff,0x00ffffff,0x17000000},new float[]{0,.24f,.65f,1},Shader.TileMode.CLAMP));
@@ -119,14 +124,14 @@ final class LiquidGlassDrawable extends Drawable {
             }finally{renderer.destroy();capture.discardDisplayList();}
             Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);Canvas fallback=new Canvas(bitmap);
             if(plate!=null)fallback.drawBitmap(plate,null,new Rect(0,0,size,size),foreground);
-            drawSurface(fallback,new Rect(0,0,size,size),false);fallback.drawBitmap(glyph,null,new Rect(0,0,size,size),foreground);return bitmap;
+            drawSurface(fallback,new Rect(0,0,size,size),false);if(glyph!=null)fallback.drawBitmap(glyph,null,new Rect(0,0,size,size),foreground);return bitmap;
         }finally{setBounds(old);}
     }
     private void queuePoll(View view){if(!pollQueued&&view.isAttachedToWindow()&&view.getWindowVisibility()==View.VISIBLE&&isVisible()&&getCallback()!=null){pollQueued=true;scheduleSelf(poll,SystemClock.uptimeMillis()+33);}}
     private long pose(View view){view.getLocationOnScreen(position);long hash=position[0]*31L+position[1];hash=hash*31+Float.floatToIntBits(view.getScaleX());hash=hash*31+Float.floatToIntBits(view.getScaleY());if(view instanceof android.widget.ImageView){((android.widget.ImageView)view).getImageMatrix().getValues(matrixValues);for(float v:matrixValues)hash=hash*31+Float.floatToIntBits(v);}return hash;}
     @Override public boolean setVisible(boolean visible,boolean restart){if(!visible){unscheduleSelf(poll);pollQueued=false;}return super.setVisible(visible,restart);}
-    @Override public int getIntrinsicWidth(){return glyph.getWidth();}
-    @Override public int getIntrinsicHeight(){return glyph.getHeight();}
+    @Override public int getIntrinsicWidth(){return glyph==null?-1:glyph.getWidth();}
+    @Override public int getIntrinsicHeight(){return glyph==null?-1:glyph.getHeight();}
     @Override public boolean isStateful(){return true;}
     @Override protected boolean onStateChange(int[] state){invalidateSelf();return true;}
     @Override public void setAlpha(int alpha){this.alpha=alpha;invalidateSelf();}

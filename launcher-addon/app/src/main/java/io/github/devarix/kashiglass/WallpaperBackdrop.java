@@ -93,11 +93,13 @@ final class WallpaperBackdrop implements GlassBackdrop {
         }finally{p.destroy();try{p.getErrorStream().close();}catch(IOException ignored){}process=null;}
     }
     private void cancelProcess(){Process p=process;if(p!=null)p.destroyForcibly();}
-    @Override public boolean draw(Canvas canvas,View owner,Rect bounds,int margin){
+    @Override public boolean draw(Canvas canvas,View owner,Rect bounds,int margin){return drawInternal(canvas,owner,bounds,margin,true);}
+    @Override public boolean drawSurface(Canvas canvas,View owner,Rect bounds,int margin){return drawInternal(canvas,owner,bounds,margin,false);}
+    private boolean drawInternal(Canvas canvas,View owner,Rect bounds,int margin,boolean content){
         Bitmap source=bitmap;if(source==null)return false;
         View root=owner.getRootView();int width=root.getWidth(),height=root.getHeight();if(width<1||height<1)return false;
         float scale=Math.max((float)width/source.getWidth(),(float)height/source.getHeight());
         wallpaperMatrix.setScale(scale,scale);wallpaperMatrix.postTranslate(-(source.getWidth()*scale-width)*offsetX,-(source.getHeight()*scale-height)*offsetY);
-        int saved=canvas.save();try{if(!geometry.concatScreenToNode(canvas,owner,bounds,margin))return false;canvas.drawBitmap(source,wallpaperMatrix,paint);return true;}finally{canvas.restoreToCount(saved);}
+        int saved=canvas.save();try{if(!geometry.concatScreenToNode(canvas,owner,bounds,margin,content))return false;canvas.drawBitmap(source,wallpaperMatrix,paint);return true;}finally{canvas.restoreToCount(saved);}
     }
 }

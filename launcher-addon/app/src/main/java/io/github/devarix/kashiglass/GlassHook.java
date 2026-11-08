@@ -44,6 +44,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static int radius=24;
     private static volatile String style="liquid";
     private static WallpaperBackdrop wallpaper;
+    private static LauncherSurfaces surfaces;
     private static volatile Set<String> packages=Collections.emptySet();
     private static String lastStatus="",lastBindings="";
     private static final class State {
@@ -61,6 +62,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
         debug("HOOK_START","build="+BuildConfig.VERSION_NAME+" process="+param.processName);
         if(Looper.getMainLooper()==null){debug("HOOK_ABORT","No main looper; hooks skipped");return;}
         MAIN=new Handler(Looper.getMainLooper());
+        surfaces=new LauncherSurfaces(GlassHook::surfaceReport,message->debug("SURFACE",message));
+        surfaces.install(param.classLoader);
         XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
             @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];try{initialize();}catch(Throwable e){error("INITIALIZE_ERROR",e);}}}
         });
@@ -166,6 +169,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static void walk(View view){
         if(!enabled)return;
+        if(surfaces!=null)surfaces.apply(view);
         if(isIcon(view))apply(view);
         if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)walk(group.getChildAt(i));}
     }
@@ -183,7 +187,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static String assetKey(String pkg){return style+":"+(pkg==null?"":pkg);}
     private static Drawable makeDrawable(View view,Bitmap bitmap){return "liquid".equals(style)||GlassConfig.automaticKey(resolve(view))?new LiquidGlassDrawable(view,bitmap,wallpaper,blur,radius,GlassHook::report):new BitmapDrawable(view.getResources(),bitmap);}
-    private static void refreshLiquid(){TRANSITIONS.evictAll();if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
+    private static void refreshLiquid(){TRANSITIONS.evictAll();if(surfaces!=null)surfaces.invalidate();if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
     private static void initialize(){
         synchronized(EARLY_LOGS){while(!EARLY_LOGS.isEmpty()){String[] entry=EARLY_LOGS.removeFirst();debug(entry[0],entry[1]);}}
         debug("ATTACH","Launcher context attached; SDK="+Build.VERSION.SDK_INT);
@@ -200,6 +204,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 debugEnabled=config.getBoolean("debug_logs",true);
                 debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
+                boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true);
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
@@ -208,7 +213,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     if(replace)TRANSITIONS.evictAll();
                     if(replace)for(View view:new ArrayList<>(STATES.keySet()))if(view!=null)restore(view,state(view));
                     enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;packages=nextPackages;FAILED.clear();
-                    LiquidGlassDrawable.configure(shader,plate);wallpaper.configure(enabled&&"liquid".equals(style),root);
+                    LiquidGlassDrawable.configure(shader,plate);wallpaper.configure(enabled&&("liquid".equals(style)||nextDock||nextSearch),root);
+                    if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,blur,radius,wallpaper);
                     report(enabled?"Selected "+style+" material. Waiting for mapped icons to bind.":"Launcher connected. Glass icons are disabled.");
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}
                     Activity activity=lastActivity.get();if(enabled&&activity!=null)scan(activity.getWindow().getDecorView());
@@ -329,6 +335,10 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static void restore(View view,State state){
         clearBlur(view,state);
         if(state.applied){INTERNAL.set(true);try{if(view instanceof ImageView)setIconDrawable(view,state.original);else XposedHelpers.callMethod(view,"setIconDrawable",state.original,null);}finally{INTERNAL.set(false);}state.applied=false;state.packageName=null;}
+    }
+    private static void surfaceReport(String message){
+        if(context==null)return;
+        IO.execute(()->{try{Bundle data=new Bundle();data.putString("surfaces",message);context.getContentResolver().call(GlassProvider.SETTINGS,"surfaces",null,data);}catch(Throwable e){error("SURFACE_STATUS_ERROR",e);}});
     }
     private static void report(String message){
         if(context==null||message.equals(lastStatus))return;lastStatus=message;

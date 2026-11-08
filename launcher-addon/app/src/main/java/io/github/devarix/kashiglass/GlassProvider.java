@@ -25,6 +25,8 @@ public final class GlassProvider extends ContentProvider {
             prefs.edit().putLong("connected_at",System.currentTimeMillis()).apply();
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
+            result.putBoolean("dock_glass",prefs.getBoolean("dock_glass",true));
+            result.putBoolean("search_glass",prefs.getBoolean("search_glass",true));
             result.putBoolean("automatic",prefs.getBoolean("automatic",true));
             result.putBoolean("debug_logs",prefs.getBoolean("debug_logs",true));
             DebugLog.event(getContext(),"SETTINGS_READ","caller="+Binder.getCallingUid()+" style="+style+" icons="+prefs.getBoolean("icons",false)+" blur="+prefs.getBoolean("blur",false));
@@ -37,6 +39,10 @@ public final class GlassProvider extends ContentProvider {
             catch (IOException e) { result.putString("error", e.toString()); }
         } else if ("log".equals(method)) {
             if(extras!=null)DebugLog.event(getContext(),"LAUNCHER/"+DiagnosticLog.clean(extras.getString("event"),32),extras.getString("message"));
+        } else if ("surfaces".equals(method)) {
+            String value=extras==null?null:extras.getString("surfaces");
+            if(value!=null){prefs.edit().putString("surfaces",DiagnosticLog.clean(value,600)).apply();DebugLog.event(getContext(),"SURFACES",value);}
+            getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
         } else if ("diagnostics".equals(method)) {
             String value=extras==null?null:extras.getString("bindings");
             if(value!=null)DebugLog.event(getContext(),"BINDINGS",value);

@@ -9,6 +9,16 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Matching glass dock and search (0.5.0)
+
+[Download 0.5.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.5.0-test). Includes all 0.4.0 icon changes plus **Glass dock** and **Glass search bar**, both on by default under the master icon switch.
+
+The existing Kashi HotSeats background becomes a rounded gray lens, inset slightly to form a floating dock. Its separate decorative blur view is hidden while active and restored on disable. Home and drawer search layouts use a capsule lens. The surfaces share the icons' QWEA0 shader, grayscale tint, optical bevel, silver reflection overlay and blur strength. Native padding, child layout, search input, focus, click and gesture handlers stay in charge; no extra touch layer is inserted. Background colors/tints are restored when a surface switch is disabled. Only the three explicitly identified Kashi classes are targeted; external Google/third-party search widgets are not restyled or resized.
+
+**Preview Liquid Glass** now shows the icon grid, a glass search pill and a glass dock on the same striped background. **Launcher status** and exported logs include bound dock/search counts and surface errors. If a control is absent in your selected launcher layout, the add-on does not create a second one. Select Kashi's built-in search bar in launcher settings to style it. Static-wallpaper capture limits still apply, including in the drawer; the fully composed drawer background is not captured.
+
+This implements the reference's shared material, while retaining your launcher layout and control widths. The new surface hooks still need a phone test. Older releases remain available.
+
 ## Liquid Glass test build (0.4.0)
 
 [Download 0.4.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.4.0-test). Adds stronger optical refraction, broader silver bevels, curved highlights and finer inner edge reflections. Blur is lighter so the lens distortion is more visible; icons remain grayscale.

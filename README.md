@@ -1,3 +1,5 @@
+**Latest glass surfaces test:** [0.5.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.5.0-test) · Matching dock/search glass, stronger icons, automatic artwork and transition updates.
+
 **Latest Liquid Glass test:** [0.4.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.4.0-test) · Stronger refraction, animation snapshots, automatic icons and diagnostic logs.
 
 **Logging test build:** [0.3.1 test APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.3.1-test) · Includes Export logs, Copy logs and Clear logs.

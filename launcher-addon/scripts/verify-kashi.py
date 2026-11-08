@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import zipfile,struct,re,json,sys
-apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;','Lcom/miui/home/launcher/ShortcutIcon;'};found={}
+apk=Path(sys.argv[1]);targets={'Lcom/miui/home/icon/LauncherIconImageView;','Lcom/miui/home/settings/IconCustomizeFragment;','Lcom/miui/home/launcher/ShortcutInfo;','Lcom/miui/home/launcher/ShortcutIcon;','Lcom/miui/home/launcher/hotseats/HotSeats;','Lcom/miui/home/launcher/SearchBarDesktopLayout;','Lcom/miui/home/launcher/SearchBarDrawerLayout;'};found={}
 with zipfile.ZipFile(apk) as z:
  for name in z.namelist():
   if not re.match(r'classes\d*\.dex$',name):continue

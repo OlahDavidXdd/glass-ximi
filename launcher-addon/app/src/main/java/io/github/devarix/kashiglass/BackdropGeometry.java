@@ -8,13 +8,16 @@ final class BackdropGeometry {
     private final Matrix localToScreen=new Matrix(),screenToLocal=new Matrix();
     private final int[] location=new int[2];
     boolean concatScreenToNode(Canvas target,View owner,Rect bounds,int margin){
+        return concatScreenToNode(target,owner,bounds,margin,true);
+    }
+    boolean concatScreenToNode(Canvas target,View owner,Rect bounds,int margin,boolean content){
         localToScreen.reset();
-        if(owner instanceof ImageView)localToScreen.set(((ImageView)owner).getImageMatrix());
-        if(owner instanceof android.widget.TextView){
+        if(content&&owner instanceof ImageView)localToScreen.set(((ImageView)owner).getImageMatrix());
+        if(content&&owner instanceof android.widget.TextView){
             // Top compound icon is horizontally centered in TextView's content box.
             float x=owner.getPaddingLeft()+(owner.getWidth()-owner.getPaddingLeft()-owner.getPaddingRight()-bounds.width())*.5f;
             localToScreen.postTranslate(x,owner.getPaddingTop());
-        }else localToScreen.postTranslate(owner.getPaddingLeft(),owner.getPaddingTop());
+        }else if(content)localToScreen.postTranslate(owner.getPaddingLeft(),owner.getPaddingTop());
         localToScreen.postScale(owner.getScaleX(),owner.getScaleY());
         owner.getLocationOnScreen(location);
         localToScreen.postTranslate(location[0],location[1]);

@@ -32,6 +32,29 @@
         "onTouchEvent",
         "setTag"
       ]
+    },
+    "Lcom/miui/home/launcher/hotseats/HotSeats;": {
+      "superclass": "Landroid/widget/FrameLayout;",
+      "binding_methods": [
+        "onFinishInflate",
+        "onAttachedToWindow",
+        "onResume"
+      ]
+    },
+    "Lcom/miui/home/launcher/SearchBarDesktopLayout;": {
+      "superclass": "Landroid/widget/RelativeLayout;",
+      "binding_methods": [
+        "onFinishInflate",
+        "refreshStyle",
+        "refreshSearchBarExterior"
+      ]
+    },
+    "Lcom/miui/home/launcher/SearchBarDrawerLayout;": {
+      "superclass": "Landroid/widget/RelativeLayout;",
+      "binding_methods": [
+        "onFinishInflate",
+        "onAttachedToWindow"
+      ]
     }
   },
   "device_blur_verified": false
