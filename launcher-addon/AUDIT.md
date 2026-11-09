@@ -1,3 +1,9 @@
+# 0.14.0: native MAML widget path
+
+The prior Android-only widget guard skipped Kashi's separate MaMlHostView cards. The native path is now discovered and logged, with clock/weather metadata filtering. The existing material is drawn in the registered root's inner ElementGroup render pass, after the engine clears its canvas. Only large, noninteractive named background images or rectangle decoration is skipped. Clock hands, weather symbols, text, touch handlers, unrelated roots and flattened images are retained. Disable/detach/root replacement remove the binding without altering native element state.
+
+`compatibility/maml-widget-api-v75.json` records the native signatures checked against the APK. Runtime tests execute the production drawing/binding/policy using API-shaped fixtures; actual MAML/Xposed dispatch and device output are not emulated. The new status reports bound roots, successful material drawing and background replacements separately, including a zero count where opaque/unknown content remains.
+
 # 0.13.0 targeted follow-up: repeated transitions
 
 Phone report on 0.12.0: the first transitions used glass, later ones used stock, and repeated transitions left stock artwork on the launcher. Settings did not recover it.
@@ -37,7 +43,7 @@ The release validation records unit counts, APK signature, assets and preserved 
 ## Remaining limits
 
 - Xiaomi's compositor/native blur, live Kashi app transitions/gestures and frame pacing have not been verified on a compatible HyperOS runtime. A passing host test does not prove visual blur or smoothness.
-- Clock/weather cards that flatten their content and background cannot be separated safely; MAML-only cards remain unsupported.
+- Clock/weather cards that flatten their content and background cannot be separated safely; MAML-only cards were unsupported through 0.13.0. Version 0.14.0 adds scoped native-root rendering for separable MAML backgrounds; flattened/unknown image content is still retained.
 - System splash artwork is outside the launcher module's scope.
 - Persistent update signing requires repository Actions secrets. The current GitHub connection is denied secret administration (HTTP 403); support is prepared, but the runner-debug certificate limitation remains until an administrator configures it. See [signing setup](SIGNING.md).
 - The last supplied phone log had installed and loaded **0.9.0**, so it did not test the later animation changes. After updating, verify that the loaded hook matches the installed build before judging those fixes.

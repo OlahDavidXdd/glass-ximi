@@ -1,0 +1,136 @@
+{
+  "scope": "Read-only metadata inspection of Kashi V7.5; not device hook execution",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "classes": {
+    "Lcom/miui/home/launcher/maml/MaMlHostView;": {
+      "super": "Lcom/miui/maml/component/MamlView;",
+      "methods": [
+        {
+          "name": "getItemInfo",
+          "descriptor": "()Lcom/miui/home/model/api/ItemInfo;"
+        },
+        {
+          "name": "getMaMlRoot",
+          "descriptor": "()Ljava/lang/Object;"
+        }
+      ]
+    },
+    "Lcom/miui/maml/elements/AnimatedScreenElement;": {
+      "super": "Lcom/miui/maml/elements/ScreenElement;",
+      "methods": [
+        {
+          "name": "getAlpha",
+          "descriptor": "()I"
+        },
+        {
+          "name": "getContentDescription",
+          "descriptor": "()Ljava/lang/String;"
+        },
+        {
+          "name": "getHeight",
+          "descriptor": "()F"
+        },
+        {
+          "name": "getWidth",
+          "descriptor": "()F"
+        },
+        {
+          "name": "render",
+          "descriptor": "(Landroid/graphics/Canvas;)V"
+        }
+      ],
+      "fields": [
+        [
+          "mInterceptTouch",
+          "Z"
+        ],
+        [
+          "mTouchable",
+          "Z"
+        ]
+      ]
+    },
+    "Lcom/miui/maml/elements/ElementGroup;": {
+      "super": "Lcom/miui/maml/elements/AnimatedScreenElement;",
+      "methods": [
+        {
+          "name": "doRender",
+          "descriptor": "(Landroid/graphics/Canvas;)V"
+        }
+      ]
+    },
+    "Lcom/miui/maml/ScreenElementRoot;": {
+      "super": "Lcom/miui/maml/elements/ScreenElement;",
+      "methods": [
+        {
+          "name": "getHeight",
+          "descriptor": "()F"
+        },
+        {
+          "name": "getWidth",
+          "descriptor": "()F"
+        }
+      ],
+      "fields": [
+        [
+          "mInnerGroup",
+          "Lcom/miui/maml/elements/ElementGroup;"
+        ],
+        [
+          "mTouchable",
+          "Z"
+        ]
+      ]
+    },
+    "Lcom/miui/maml/component/MamlView;": {
+      "super": "Landroid/widget/FrameLayout;",
+      "methods": [
+        {
+          "name": "initMamlview",
+          "descriptor": "(Landroid/content/Context; Lcom/miui/maml/ScreenElementRoot;)V"
+        }
+      ]
+    },
+    "Lcom/miui/maml/elements/ScreenElement;": {
+      "super": "Ljava/lang/Object;",
+      "methods": [
+        {
+          "name": "getName",
+          "descriptor": "()Ljava/lang/String;"
+        },
+        {
+          "name": "getRoot",
+          "descriptor": "()Lcom/miui/maml/ScreenElementRoot;"
+        },
+        {
+          "name": "render",
+          "descriptor": "(Landroid/graphics/Canvas;)V"
+        }
+      ],
+      "fields": [
+        [
+          "mRoot",
+          "Lcom/miui/maml/ScreenElementRoot;"
+        ]
+      ]
+    },
+    "Lcom/miui/maml/elements/ImageScreenElement;": {
+      "super": "Lcom/miui/maml/elements/AnimatedScreenElement;",
+      "methods": [
+        {
+          "name": "getHeight",
+          "descriptor": "()F"
+        },
+        {
+          "name": "getSrc",
+          "descriptor": "()Ljava/lang/String;"
+        },
+        {
+          "name": "getWidth",
+          "descriptor": "()F"
+        }
+      ],
+      "fields": []
+    }
+  }
+}

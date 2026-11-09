@@ -21,6 +21,7 @@ final class LauncherWidgets {
     private final Map<View,Change> changes=new WeakHashMap<>();
     private final Map<View,Host> hosts=new WeakHashMap<>();
     private final Consumer<String> log,report;
+    private final MamlWidgetGlass maml;
     private boolean enabled,blur,applying;
     private int strength=24,revision;
     private GlassBackdrop backdrop;
@@ -30,8 +31,19 @@ final class LauncherWidgets {
         WeakReference<View> host;Drawable background,image;ColorStateList tint;PorterDuff.Mode mode;
         WeakReference<Drawable> ours=new WeakReference<>(null);boolean imageCleared,applied,glass;int revision;
     }
-    LauncherWidgets(Consumer<String> report,Consumer<String> log){this.report=report;this.log=log;}
+    LauncherWidgets(Consumer<String> report,Consumer<String> log){this.report=report;this.log=log;this.maml=new MamlWidgetGlass(log,message->counts());}
     void install(ClassLoader loader){
+        Class<?> mamlHost=XposedHelpers.findClassIfExists("com.miui.home.launcher.maml.MaMlHostView",loader);
+        log.accept("MAML widget host found="+(mamlHost!=null));
+        if(mamlHost!=null){
+            XposedBridge.hookAllConstructors(mamlHost,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
+            Class<?> mamlView=XposedHelpers.findClassIfExists("com.miui.maml.component.MamlView",loader);
+            if(mamlView!=null)XposedBridge.hookAllMethods(mamlView,"initMamlview",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
+            Class<?> group=XposedHelpers.findClassIfExists("com.miui.maml.elements.ElementGroup",loader);
+            if(group!=null)XposedBridge.hookAllMethods(group,"doRender",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(p.args.length==1&&p.args[0] instanceof android.graphics.Canvas)maml.drawBackground(p.thisObject,(android.graphics.Canvas)p.args[0]);}catch(Throwable error){log.accept("MAML background hook error: "+error.getClass().getSimpleName());}}});
+            Class<?> element=XposedHelpers.findClassIfExists("com.miui.maml.elements.AnimatedScreenElement",loader);
+            if(element!=null)XposedBridge.hookAllMethods(element,"render",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(maml.skipDecoration(p.thisObject))p.setResult(null);}catch(Throwable error){log.accept("MAML decoration hook error: "+error.getClass().getSimpleName());}}});
+        }
         Class<?> type=XposedHelpers.findClassIfExists("com.miui.home.launcher.LauncherAppWidgetHostView",loader);
         log.accept("Widget host found="+(type!=null));if(type==null)return;
         XposedBridge.hookAllConstructors(type,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){
@@ -50,10 +62,11 @@ final class LauncherWidgets {
         Watcher(View view){owner=new WeakReference<>(view);}
         public void onLayoutChange(View v,int l,int t,int r,int b,int ol,int ot,int or,int ob){apply(v);}
         public void onViewAttachedToWindow(View v){remove();android.view.ViewTreeObserver observer=v.getViewTreeObserver();observer.addOnPreDrawListener(this);tree=new WeakReference<>(observer);v.post(()->apply(v));}
-        public void onViewDetachedFromWindow(View v){remove();counts();}
+        public void onViewDetachedFromWindow(View v){remove();maml.detach(v);counts();}
         private void remove(){android.view.ViewTreeObserver observer=tree.get();if(observer!=null&&observer.isAlive())observer.removeOnPreDrawListener(this);tree.clear();}
         public boolean onPreDraw(){
-            View view=owner.get();if(view==null){remove();return true;}Host state=hosts.get(view);
+            View view=owner.get();if(view==null){remove();return true;}
+            if(enabled)maml.apply(view);Host state=hosts.get(view);
             if(!enabled||!view.isShown()||state==null||!state.supported)return true;
             View root=view instanceof ViewGroup&&((ViewGroup)view).getChildCount()>0?((ViewGroup)view).getChildAt(0):null;
             boolean dirty=root!=state.root.get();
@@ -67,13 +80,17 @@ final class LauncherWidgets {
     void configure(boolean enabled,boolean blur,int strength,GlassBackdrop backdrop){
         revision++; // Recreate cards when shared material options change as well.
         this.enabled=enabled;this.blur=blur;this.strength=strength;this.backdrop=backdrop;
+        maml.configure(enabled,blur,strength,backdrop);
         if(!enabled){for(View view:new ArrayList<>(changes.keySet()))restore(view);for(Host host:hosts.values())host.supported=false;}
         else for(View view:new ArrayList<>(hosts.keySet()))apply(view);
         counts();
     }
     void apply(View view){
         if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){main.post(()->apply(view));return;}
-        if(applying||!enabled||backdrop==null||!(view instanceof AppWidgetHostView))return;
+        if(applying||!enabled||backdrop==null)return;
+        maml.apply(view);
+        if(!(view instanceof AppWidgetHostView))return;
+        track(view);
         applying=true;
         try{
             AppWidgetHostView host=(AppWidgetHostView)view;Host state=hosts.get(view);if(state==null){state=new Host();hosts.put(view,state);}
@@ -140,7 +157,7 @@ final class LauncherWidgets {
         int cards=0,unsupported=0;for(var entry:hosts.entrySet())if(entry.getKey()!=null&&entry.getKey().isShown()&&entry.getValue().supported){
             View root=entry.getValue().root.get();Change change=changes.get(root);if(change!=null&&change.applied&&root.getWidth()>0&&root.getHeight()>0&&root.isShown())cards++;else unsupported++;
         }
-        String value="Widgets: "+cards+" glass clock/weather cards, "+unsupported+" inseparable or pending cards.";
+        String value="Widgets: "+cards+" glass clock/weather cards, "+unsupported+" inseparable or pending cards; "+maml.summary()+".";
         if(!value.equals(lastCounts)){lastCounts=value;report.accept(value);}
     }
 }

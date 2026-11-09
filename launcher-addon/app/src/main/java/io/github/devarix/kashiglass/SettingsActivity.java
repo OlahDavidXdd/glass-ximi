@@ -34,7 +34,7 @@ public final class SettingsActivity extends Activity {
         toggle(page,"Glass dock","Rounded gray glass behind the dock icons. Uses the same lens, reflections and blur strength as Liquid Glass icons.","dock_glass");
         toggle(page,"Glass search bar","The compact home search pill requests native blur on its attached background view, independently of your icon material. Text and taps are retained. Firmware support is logged.","search_glass");
         toggle(page,"Glass app drawer","Frosted gray sheet behind the app grid and search results. Keeps scrolling, categories and search input.","drawer_glass");
-        toggle(page,"Glass clock & weather widgets","Replaces separate card backgrounds while retaining live content and taps. Cards drawn as a single image cannot be separated; widget support is logged.","widget_glass");
+        toggle(page,"Glass clock & weather widgets","Styles separate Android and native MAML clock/weather card backgrounds while retaining live content and taps. Flattened artwork is retained; widget support is logged.","widget_glass");
         blurSwitch=toggle(page,"Backdrop blur","Screen matching uses a dedicated native backdrop node. Static-wallpaper lens mode uses the QWEA0 shader.","blur");
         toggle(page,"Wallpaper access via root","Optional. If normal wallpaper access is denied, requests root for System launcher to read the current static wallpaper only.","root_wallpaper");
         Button enable=new Button(this);enable.setText("Enable Liquid Glass");page.addView(enable);

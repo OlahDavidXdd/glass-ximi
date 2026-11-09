@@ -37,7 +37,7 @@ Repeated Activity resumes no longer reload assets/settings. Unchanged connection
 
 Install, restart/reboot and check **Loaded hook: 0.10.0-test — matches app**. The build is checked against the public Kashi V7.5 native signatures and includes unit/lint/asset/signature checks, but physical-device animation smoothness is unverified. Check home/dock/drawer opening and closing, quick app switching, interrupted gestures and drawer recycling; export logs for any remaining issue. System splash artwork is outside the module’s scope. See [release notes](RELEASE_NOTES.md).
 
-## Compact search and clock/weather widgets (0.9.0)
+## Compact search and clock/weather widgets
 
 [Download 0.9.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.9.0-test). The current icons and animation logic are preserved from 0.8.0, as requested. Validation checks hashes of their unchanged rendering/generation/transition source files.
 
@@ -45,9 +45,9 @@ The small home **Search** capsule is `pageindicators.CapsuleIndicator`, with an 
 
 **Glass clock & weather widgets** is on by default. It targets recognized Android clock/weather AppWidget providers, replaces their separate card backgrounds with the existing glass material, and removes large background layers. Only explicitly named, non-interactive decorative images can be cleared; clock faces/hands, weather icons, text and taps are retained. No replacement weather service, location permission, timer or widget provider is added. Updates/reinflation and layout changes reapply the material, and disabling restores original backgrounds/tints/artwork.
 
-Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. MAML-only cards are not supported here. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
+Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. Native MAML clock/weather support is added in 0.14.0: recognized roots get the same material inside their native render pass, with large decorative background images/rectangles suppressed. Unknown or flattened images remain intact. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
 
-Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.9.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
+Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.14.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
 
 ## Screen matching and native source visibility (0.8.0)
 

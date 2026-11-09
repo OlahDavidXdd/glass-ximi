@@ -1,5 +1,15 @@
 Developer: **devarix**
 
+## 0.14.0 — Native MAML clock and weather cards
+
+The earlier widget implementation only recognized Android AppWidgetHostView cards. Kashi V7.5 also renders clock/weather through `MaMlHostView` and the native MAML element tree; those widgets were never reached by that implementation.
+
+This build discovers native MAML clock/weather metadata and roots, inserts the existing Liquid Glass material inside the root's render pass, and suppresses large, noninteractive decorative background images/rectangles. Native time, weather data, hands, condition symbols, text and touch behavior are retained. Unknown or flattened images remain intact. Unrelated MAML widgets and app icons are excluded. Disabling the option stops interception without rewriting theme assets.
+
+Widget status now includes bound/rendered MAML cards and replaced background-layer counts. Logs include host metadata, pending roots, layer names/sources and replacement decisions. Enable **Glass clock & weather widgets**, restart/reboot, and confirm **Loaded hook: 0.14.0-test**. If a card still looks stock, export the new `MAML host`, `MAML layer` and `MAML glass rendered` lines.
+
+The API boundary was checked against Kashi V7.5's APK. Android host tests execute production material drawing, selection, binding, root replacement and disable/detach logic using fixtures for MAML's getter/field boundary. They do not execute the actual MAML engine or LSPosed hook dispatch; the appearance of your specific stock cards still needs phone verification. Approved icon renderers and PNG assets are unchanged.
+
 ## 0.13.0 — Recover artwork after repeated app animations
 
 Fixes a verified recovery/cache-ownership defect matching the 0.12.0 phone report: native drawable replacement could leave the applied flag set, and an unverified stock bitmap could then overwrite cached glass artwork. Per-view bindings now retain trusted glyphs, verify the actual drawable, repair native field/drawing-slot replacement before rendering, and isolate Frosted bitmap pixels from native mutation/recycling. Detached views stop their integrity watcher. Native null/transparent slots, source hiding and alpha remain authoritative.
@@ -24,7 +34,7 @@ Preserves the approved icon artwork and renderer parameters. See [the audit](AUD
 
 ## Apply
 
-Install, keep LSPosed scoped to **System launcher (`com.miui.home`)**, restart/reboot and verify **Loaded hook: 0.13.0-test — matches app**, with a fresh launcher response. Keep your preferred icon material. The latest phone report confirmed the repeated-transition issue on 0.12.0. Restarting the launcher is required to load the new hook and discard the old process caches.
+Install, keep LSPosed scoped to **System launcher (`com.miui.home`)**, restart/reboot and verify **Loaded hook: 0.14.0-test — matches app**, with a fresh launcher response. Keep your preferred icon material. The latest phone report confirmed the repeated-transition issue on 0.12.0. Restarting the launcher is required to load the new hook and discard the old process caches.
 
 **Signing remains a configuration limitation:** this GitHub connection cannot administer Actions secrets (HTTP 403). Without the managed-signing secrets, CI still uses an ephemeral debug key and clearly reports that mode. Android can reject an in-place update from an earlier differently signed test APK. See [signing setup](SIGNING.md); if reinstalling is required, save your settings report, reinstall **devarix Glass only**, restore its scope/options and reboot. Keep System launcher installed.
 
