@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/Kyant0/AndroidLiquidGlass",
+  "commit": "65ab177e90e5c1d8c62e70cf7755841982da65f6",
+  "source": "backdrop/src/commonMain/kotlin/com/kyant/backdrop/internal/Shaders.kt",
+  "extraction": "RoundedRectRefractionShaderString with verbatim RoundedRectSDF expansion",
+  "shader_sha256": "138832618051b3f5d7a863205f60dbc554acce23c25f59125e5b23aff7116220",
+  "license": "Apache-2.0",
+  "integration": "Java View/RenderNode adapter; not the Compose component"
+}

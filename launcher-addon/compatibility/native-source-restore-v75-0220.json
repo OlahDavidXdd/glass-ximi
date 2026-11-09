@@ -1,0 +1,259 @@
+{
+  "scope": "Static public Kashi V7.5 APK inspection, not hook dispatch verification",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "class": "com.miui.home.launcher.ShortcutIcon",
+  "methods": [
+    {
+      "name": "lambda$new$5",
+      "descriptor": "()V",
+      "code": [
+        [
+          "invoke-virtual",
+          "v3, Landroid/view/View;->getTag()Ljava/lang/Object;"
+        ],
+        [
+          "move-result-object",
+          "v0"
+        ],
+        [
+          "check-cast",
+          "v0, Lcom/miui/home/launcher/ShortcutInfo;"
+        ],
+        [
+          "invoke-virtual",
+          "v0, Lcom/miui/home/model/api/ItemInfoWithIconAndMessage;->getIconDrawable()Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "move-result-object",
+          "v0"
+        ],
+        [
+          "invoke-static",
+          "v0, Lcom/miui/launcher/utils/MamlUtils;->clearDrawable(Landroid/graphics/drawable/Drawable;)V"
+        ],
+        [
+          "iget-object",
+          "v1, v3, Lcom/miui/home/launcher/ShortcutIcon;->mOriginalDrawable Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "if-ne",
+          "v1, v0, +003h"
+        ],
+        [
+          "return-void",
+          ""
+        ],
+        [
+          "invoke-virtual",
+          "v3, Lcom/miui/home/launcher/ShortcutIcon;->getIconVisibility()I"
+        ],
+        [
+          "move-result",
+          "v1"
+        ],
+        [
+          "const/4",
+          "v2, 4"
+        ],
+        [
+          "if-ne",
+          "v1, v2, +006h"
+        ],
+        [
+          "invoke-direct",
+          "v3, v0, Lcom/miui/home/launcher/ShortcutIcon;->setOriginalDrawableAndRoundedDrawable(Landroid/graphics/drawable/Drawable;)V"
+        ],
+        [
+          "goto",
+          "+5h"
+        ],
+        [
+          "const/4",
+          "v1, 0"
+        ],
+        [
+          "invoke-virtual",
+          "v3, v0, v1, Lcom/miui/home/launcher/ShortcutIcon;->setIconDrawable(Landroid/graphics/drawable/Drawable; Landroid/graphics/Bitmap;)V"
+        ],
+        [
+          "return-void",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "setOriginalDrawableAndRoundedDrawable",
+      "descriptor": "(Landroid/graphics/drawable/Drawable;)V",
+      "code": [
+        [
+          "iput-object",
+          "v2, v1, Lcom/miui/home/launcher/ShortcutIcon;->mOriginalDrawable Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "invoke-virtual",
+          "v1, Lcom/miui/home/launcher/ShortcutIcon;->isCrop()Z"
+        ],
+        [
+          "move-result",
+          "v0"
+        ],
+        [
+          "if-eqz",
+          "v0, +006h"
+        ],
+        [
+          "invoke-virtual",
+          "v1, v2, Lcom/miui/home/launcher/ShortcutIcon;->roundedIcon(Landroid/graphics/drawable/Drawable;)Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "move-result-object",
+          "v2"
+        ],
+        [
+          "iput-object",
+          "v2, v1, Lcom/miui/home/launcher/ShortcutIcon;->mIconDrawable Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "return-void",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "getContentDrawable",
+      "descriptor": "()Landroid/graphics/drawable/Drawable;",
+      "code": [
+        [
+          "iget-object",
+          "v0, v0, Lcom/miui/home/launcher/ShortcutIcon;->mOriginalDrawable Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "return-object",
+          "v0"
+        ]
+      ]
+    },
+    {
+      "name": "onBackAnimStop",
+      "descriptor": "()V",
+      "code": [
+        [
+          "const/4",
+          "v0, 4"
+        ],
+        [
+          "invoke-virtual",
+          "v1, v0, Lcom/miui/home/launcher/ShortcutIcon;->setIconVisibility(I)V"
+        ],
+        [
+          "return-void",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "resetBackAnim",
+      "descriptor": "()V",
+      "code": [
+        [
+          "sget-boolean",
+          "v0, Lcom/miui/home/common/utils/AndroidVersionUtils;->ATLEAST_OREO Z"
+        ],
+        [
+          "if-eqz",
+          "v0, +016h"
+        ],
+        [
+          "invoke-virtual",
+          "v1, Lcom/miui/home/launcher/ShortcutIcon;->getLayerAdaptiveIconDrawable()Lcom/miui/home/common/drawable/LayerAdaptiveIconDrawable;"
+        ],
+        [
+          "move-result-object",
+          "v0"
+        ],
+        [
+          "if-eqz",
+          "v0, +010h"
+        ],
+        [
+          "iget-object",
+          "v0, v1, Lcom/miui/home/launcher/ShortcutIcon;->mLauncher Lcom/miui/home/launcher/BaseLauncher;"
+        ],
+        [
+          "invoke-virtual",
+          "v0, Lcom/miui/home/launcher/BaseLauncher;->getSpringLayerBackController()Lcom/miui/home/launcher/graphics/drawable/SpringLayerBackController;"
+        ],
+        [
+          "move-result-object",
+          "v0"
+        ],
+        [
+          "invoke-virtual",
+          "v1, Lcom/miui/home/launcher/ShortcutIcon;->getLayerAdaptiveIconDrawable()Lcom/miui/home/common/drawable/LayerAdaptiveIconDrawable;"
+        ],
+        [
+          "move-result-object",
+          "v1"
+        ],
+        [
+          "invoke-virtual",
+          "v0, v1, Lcom/miui/home/launcher/graphics/drawable/SpringLayerBackController;->resetBackAnim(Lcom/miui/home/common/drawable/LayerAdaptiveIconDrawable;)V"
+        ],
+        [
+          "goto",
+          "+6h"
+        ],
+        [
+          "iget-object",
+          "v0, v1, Lcom/miui/home/launcher/ShortcutIcon;->releaseDrawableRunanble Ljava/lang/Runnable;"
+        ],
+        [
+          "invoke-virtual",
+          "v1, v0, Lcom/miui/home/launcher/ShortcutIcon;->post(Ljava/lang/Runnable;)Z"
+        ],
+        [
+          "return-void",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "setIconDrawable",
+      "descriptor": "(Landroid/graphics/drawable/Drawable; Landroid/graphics/Bitmap;)V",
+      "code": [
+        [
+          "invoke-direct",
+          "v0, v1, Lcom/miui/home/launcher/ShortcutIcon;->setOriginalDrawableAndRoundedDrawable(Landroid/graphics/drawable/Drawable;)V"
+        ],
+        [
+          "iget-object",
+          "v2, v0, Lcom/miui/home/launcher/ShortcutIcon;->mIconDrawable Landroid/graphics/drawable/Drawable;"
+        ],
+        [
+          "invoke-virtual",
+          "v0, v2, Lcom/miui/home/launcher/ShortcutIcon;->applyCompoundDrawables(Landroid/graphics/drawable/Drawable;)V"
+        ],
+        [
+          "iget-object",
+          "v0, v0, Lcom/miui/home/launcher/ShortcutIcon;->mImageSetCallback Lcom/miui/home/launcher/ShortcutIcon$ImageSetCallback;"
+        ],
+        [
+          "if-eqz",
+          "v0, +007h"
+        ],
+        [
+          "if-eqz",
+          "v1, +005h"
+        ],
+        [
+          "invoke-interface",
+          "v0, v1, Lcom/miui/home/launcher/ShortcutIcon$ImageSetCallback;->onImageDrawableSet(Landroid/graphics/drawable/Drawable;)V"
+        ],
+        [
+          "return-void",
+          ""
+        ]
+      ]
+    }
+  ]
+}

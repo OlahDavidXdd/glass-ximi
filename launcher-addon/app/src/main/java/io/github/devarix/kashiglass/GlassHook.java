@@ -142,12 +142,15 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     if(!enabled||INTERNAL.get()||Looper.myLooper()!=Looper.getMainLooper())return;
                     View view=(View)p.thisObject;State state=state(view);state.resolveCached=false;rememberCurrent(view,state);
                     captureOriginal(view,state,(Drawable)p.args[0]);state.applied=false;
+                    Drawable input=(Drawable)p.args[0];Drawable protectedInput=NativeIconInput.replace(input,snapshotForKey(resolve(view)),view.getResources());
+                    if(protectedInput!=input){p.args[0]=protectedInput;debug("SOURCE_INPUT","Protected native setter callback artwork: "+resolve(view));}
                 }
                 @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get())apply((View)p.thisObject);}
             });
             XposedBridge.hookAllMethods(shortcutClass,"setOriginalDrawableAndRoundedDrawable",new XC_MethodHook(){
                 @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get())apply((View)p.thisObject);}
             });
+            for(String completion:new String[]{"onBackAnimStop","resetBackAnim"})XposedBridge.hookAllMethods(shortcutClass,completion,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get())returnedSource(p.thisObject);}});
             XposedBridge.hookAllMethods(shortcutClass,"setIconVisibility",new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()){SourceVisibility visibility=sourceVisibility((View)p.thisObject);if(visibility!=null)visibility.visibility(((Number)p.args[0]).intValue());}}
             });
@@ -192,13 +195,15 @@ public final class GlassHook implements IXposedHookLoadPackage {
             });
         }
         Class<?> infoClass=XposedHelpers.findClassIfExists("com.miui.home.launcher.ShortcutInfo",param.classLoader);
-        if(infoClass!=null)XposedBridge.hookAllMethods(infoClass,"getIconDrawable",new XC_MethodHook(){
+        java.lang.reflect.Method infoGetter=InheritedMethods.noArg(infoClass,"getIconDrawable");
+        if(infoGetter!=null){debug("HOOK_TARGET","Model artwork owner="+infoGetter.getDeclaringClass().getName());XposedBridge.hookMethod(infoGetter,new XC_MethodHook(){
             @Override protected void afterHookedMethod(MethodHookParam p){
-                if(!enabled||INTERNAL.get())return;
+                if(!enabled||INTERNAL.get()||context==null||!infoClass.isInstance(p.thisObject))return;
                 String key=fromInfo(p.thisObject);Bitmap bitmap=snapshotForKey(key);
                 if(bitmap!=null)p.setResult(new OwnedTransitionDrawable(context.getResources(),bitmap));
             }
         });
+        }
         Class<?> iconClass=XposedHelpers.findClassIfExists("com.miui.home.icon.LauncherIconImageView",param.classLoader);
         debug("HOOK_TARGET","LauncherIconImageView found="+(iconClass!=null));
         if(iconClass!=null)XposedBridge.hookAllConstructors(iconClass,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){

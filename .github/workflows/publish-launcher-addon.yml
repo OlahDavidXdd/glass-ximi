@@ -36,16 +36,16 @@ jobs:
         run: |
           mkdir -p release-output
           cp launcher-addon/screenshots/controller-*.png release-output/
-          cp launcher-addon/app/build/outputs/apk/debug/app-debug.apk release-output/devarix-Glass-Kashi-0.21.0-test.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose release-output/devarix-Glass-Kashi-0.21.0-test.apk
-          python3 launcher-addon/scripts/validate-apk.py release-output/devarix-Glass-Kashi-0.21.0-test.apk release-output/validation.json
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs release-output/devarix-Glass-Kashi-0.21.0-test.apk > release-output/signing.txt
+          cp launcher-addon/app/build/outputs/apk/debug/app-debug.apk release-output/devarix-Glass-Kashi-0.22.0-test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose release-output/devarix-Glass-Kashi-0.22.0-test.apk
+          python3 launcher-addon/scripts/validate-apk.py release-output/devarix-Glass-Kashi-0.22.0-test.apk release-output/validation.json
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs release-output/devarix-Glass-Kashi-0.22.0-test.apk > release-output/signing.txt
           python3 launcher-addon/scripts/record-signing.py release-output/validation.json release-output/signing.txt "$RUNNER_TEMP/devarix-signing-state.json"
           python3 - <<'PY'
           from pathlib import Path
           import zipfile
           root=Path('launcher-addon')
-          with zipfile.ZipFile('release-output/devarix-Glass-Kashi-0.21.0-test-source.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
+          with zipfile.ZipFile('release-output/devarix-Glass-Kashi-0.22.0-test-source.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
               for item in root.rglob('*'):
                   relative=item.relative_to(root)
                   if not item.is_file() or any(part in ['build','.gradle','tooling'] for part in relative.parts) or item.name in ['local.properties','signing.properties','keystore.properties'] or item.suffix.lower() in ['.jks','.keystore','.p12','.pfx']:
@@ -56,20 +56,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing_draft=$(gh release view kashi-glass-addon-v0.21.0-test --json isDraft --jq .isDraft 2>/dev/null || true)
+          existing_draft=$(gh release view kashi-glass-addon-v0.22.0-test --json isDraft --jq .isDraft 2>/dev/null || true)
           if [ "$existing_draft" = "false" ]; then
-            echo '::notice::Published APK releases are immutable. Existing 0.21.0 assets were preserved; bump the version for a new build.'
+            echo '::notice::Published APK releases are immutable. Existing 0.22.0 assets were preserved; bump the version for a new build.'
             exit 0
           fi
           if [ "$existing_draft" = "true" ]; then
-            draft_target=$(gh release view kashi-glass-addon-v0.21.0-test --json targetCommitish --jq .targetCommitish)
+            draft_target=$(gh release view kashi-glass-addon-v0.22.0-test --json targetCommitish --jq .targetCommitish)
             if [ "$draft_target" != "$GITHUB_SHA" ]; then
               echo '::error::This draft belongs to another commit. Bump the version or resolve the draft before publishing.'
               exit 1
             fi
           fi
           if [ -z "$existing_draft" ]; then
-            gh release create kashi-glass-addon-v0.21.0-test --target "$GITHUB_SHA" --title 'devarix Glass for Kashi — Shared icon material controller 0.21.0' --notes-file launcher-addon/RELEASE_NOTES.md --draft
+            gh release create kashi-glass-addon-v0.22.0-test --target "$GITHUB_SHA" --title 'devarix Glass for Kashi — Kyant navigation and native restore fixes 0.22.0' --notes-file launcher-addon/RELEASE_NOTES.md --draft
           fi
-          gh release upload kashi-glass-addon-v0.21.0-test release-output/devarix-Glass-Kashi-0.21.0-test.apk release-output/devarix-Glass-Kashi-0.21.0-test-source.zip release-output/validation.json release-output/controller-*.png --clobber
-          gh release edit kashi-glass-addon-v0.21.0-test --draft=false --prerelease --latest=false --notes-file launcher-addon/RELEASE_NOTES.md
+          gh release upload kashi-glass-addon-v0.22.0-test release-output/devarix-Glass-Kashi-0.22.0-test.apk release-output/devarix-Glass-Kashi-0.22.0-test-source.zip release-output/validation.json release-output/controller-*.png --clobber
+          gh release edit kashi-glass-addon-v0.22.0-test --draft=false --prerelease --latest=false --notes-file launcher-addon/RELEASE_NOTES.md

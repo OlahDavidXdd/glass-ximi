@@ -2,6 +2,18 @@
 
 Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
+## 0.22.0 — Kyant navigation, native restore inputs and clock backgrounds
+
+The floating controller navigation adapts [Kyant0/AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass), pinned at `65ab177e90e5c1d8c62e70cf7755841982da65f6`. Its rounded-rectangle refraction shader is extracted verbatim with its SDF expansion and bundled under Apache-2.0. A Java View/RenderNode adapter uses the demo's 8dp blur / 24dp lens approach; it is not the upstream Compose tab component. Navigation overlays a separate content subtree and samples that live subtree without capturing itself. Software/shader failure uses readable dark glass without claiming blur. Icon artwork and the launcher icon renderer remain unchanged.
+
+Kashi's `ShortcutInfo` declares a contextual artwork overload, while its no-argument getter used by delayed restores is inherited. The prior hook-all-declared-methods call missed that getter. The hook now resolves its actual declaring method. The native ShortcutIcon setter also notifies an image callback with its incoming drawable; that input is now replaced with an independent glass snapshot before the callback can cache stock artwork. Native clear/alpha/bounds behavior is retained. Verified source stop/reset callbacks also reconcile the live slot. These changes target concrete missing restore paths; end-to-end phone animations still need confirmation.
+
+Clock binding now removes and restores Android host backgrounds on recognized MAML wrappers/render children, in addition to the existing engine decoration pass. Children, native hands/time and weather animation frames are preserved. Provider-updated backgrounds are retained/restored appropriately. Layer logs include dimensions to distinguish remaining opaque engine content. If the opaque card is baked into an unknown foreground frame, this update retains it rather than erase live clock content.
+
+Verification: 80 Java unit tests, 229 Android runtime cases across API 33/35, lint, APK assets and signature checks. The new cases cover inherited getter resolution, native callback pixel ownership/clear/alpha behavior, clock host restoration, recursive navigation capture rejection and native Kyant shader compilation/uniforms. The original shader compiles in the API 35 native runtime. API 33 host Skia predates AGSL child.eval, so shader compilation is not tested there. Host screenshots show the software fallback; they do not prove GPU refraction, Xiaomi backdrop pixels or actual LSPosed/Kashi gestures.
+
+Install, reboot and refresh Overview to confirm loaded hook **0.22.0-test**. Diagnostics includes `SOURCE_INPUT` in the focused animation report. For a remaining clock background, export the complete report including `MAML host`, `MAML glass rendered`, host-background and layer dimensions. See [signing/update limits](SIGNING.md).
+
 ## 0.21.0 — Shared icon material and restrained black layout
 
 The controller replaces its separate OpticalGlass highlight painter with the actual `LiquidGlassDrawable` used by launcher icons. Controller controls use its explicit screen-matching material/rim path, with a neutral dark body, capsule geometry and no wallpaper tile. Blur is off for these plain-black controller surfaces; there is no claim of visible scene refraction or Xiaomi compositor sampling inside the controller. The launcher shader, icon artwork and launcher material settings are unchanged.

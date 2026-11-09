@@ -1,0 +1,3 @@
+
+# Preserve whitespace inside the pinned upstream Kyant shader string.
+launcher-addon/app/src/main/assets/shaders/kyant_refraction.agsl whitespace=-blank-at-eol

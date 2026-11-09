@@ -14,7 +14,7 @@ final class MamlWidgetGlass {
     private static final java.util.concurrent.ConcurrentMap<Class<?>,Map<String,Optional<Method>>> METHODS=new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.concurrent.ConcurrentMap<Class<?>,Map<String,Optional<Field>>> FIELDS=new java.util.concurrent.ConcurrentHashMap<>();
     private static final class Card {
-        final WeakReference<View> host;final Drawable glass;SearchBarBlur underlay;volatile boolean drawn;int removed;final Set<String> described=new HashSet<>();
+        final WeakReference<View> host;final Drawable glass;WidgetHostDecoration decoration;SearchBarBlur underlay;volatile boolean drawn;int removed;final Set<String> described=new HashSet<>();
         Card(View host,Drawable glass){this.host=new WeakReference<>(host);this.glass=glass;}
     }
     private final Map<Object,Card> roots=Collections.synchronizedMap(new WeakHashMap<>());
@@ -29,14 +29,14 @@ final class MamlWidgetGlass {
     MamlWidgetGlass(Consumer<String> log,Consumer<String> changed,SearchBarBlur.Calls calls){this.log=log;this.changed=changed;this.underlayCalls=calls;}
     void configure(boolean enabled,boolean blur,int strength,GlassBackdrop backdrop){
         renderMessages.clear();this.enabled=enabled;this.blur=blur;this.strength=strength;this.backdrop=backdrop;
-        synchronized(roots){for(Card card:roots.values())if(card.underlay!=null)card.underlay.restore();roots.clear();}for(View host:new ArrayList<>(hosts.keySet()))apply(host);
+        synchronized(roots){for(Card card:roots.values()){if(card.underlay!=null)card.underlay.restore();if(card.decoration!=null)card.decoration.restore();}roots.clear();}for(View host:new ArrayList<>(hosts.keySet()))apply(host);
         changed.accept(summary());
     }
     void apply(View host){
         if(!nativeHost(host))return;
         Object root=engineRoot(host);
         Object nested=field(host,"mAwesomeView");View owner=nested instanceof View?(View)nested:host;
-        Card bound=roots.get(root);if(enabled&&bound!=null&&bound.host.get()==owner){hosts.put(host,new WeakReference<>(root));return;}
+        Card bound=roots.get(root);if(enabled&&bound!=null&&bound.host.get()==owner){bound.decoration.clear(host);bound.decoration.clear(owner);hosts.put(host,new WeakReference<>(root));return;}
         Object info=call(host,"getItemInfo");
         if(info==null&&host.getParent() instanceof View){info=call(host.getParent(),"getItemInfo");if(info==null)info=((View)host.getParent()).getTag();}
         String descriptor=metadata(info);
@@ -49,7 +49,7 @@ final class MamlWidgetGlass {
         String diagnostic="MAML host="+host.getClass().getName()+" metadata="+descriptor+" title="+label+" root="+(root==null?"pending":root.getClass().getName())+" clock_weather="+supported;
         if(diagnostics.size()<40&&diagnostics.add(diagnostic))log.accept(diagnostic);
         if(!enabled||backdrop==null||root==null||!supported){if(root!=null)removeOwned(root,owner);return;}
-        bind(owner,root);hosts.put(host,new WeakReference<>(root));
+        bind(owner,root);Card active=roots.get(root);if(active!=null){active.decoration.clear(host);active.decoration.clear(owner);}hosts.put(host,new WeakReference<>(root));
     }
     // Called only after identifying a native clock/weather host; also exercised by Android tests.
     void bind(View host,Object root){
@@ -57,9 +57,9 @@ final class MamlWidgetGlass {
         Object previous=hosts.get(host)==null?null:hosts.get(host).get();if(previous!=null&&previous!=root)removeOwned(previous,host);
         hosts.put(host,new WeakReference<>(root));
         Card current=roots.get(root);if(current!=null&&current.host.get()==host)return;
-        if(current!=null&&current.underlay!=null)current.underlay.restore();
+        if(current!=null){if(current.underlay!=null)current.underlay.restore();if(current.decoration!=null)current.decoration.restore();}
         Drawable glass=SharedGlassMaterial.create(host,backdrop,blur,strength,this::renderStatus,GlassSurface.WIDGET);
-        Card card=new Card(host,glass);
+        Card card=new Card(host,glass);card.decoration=new WidgetHostDecoration(log);card.decoration.clear(host);
         if(underlayCalls!=null){View body=host instanceof android.view.ViewGroup&&((android.view.ViewGroup)host).getChildCount()>0?((android.view.ViewGroup)host).getChildAt(0):host;card.underlay=new SearchBarBlur(body,host,underlayCalls,log,"WIDGET");card.underlay.useSharedMaterial(true);}
         roots.put(root,card);host.invalidate();changed.accept(summary());
     }
@@ -92,13 +92,13 @@ final class MamlWidgetGlass {
         boolean interactive=Boolean.TRUE.equals(field(element,"mTouchable"))||Boolean.TRUE.equals(field(element,"mInterceptTouch"));
         String description=string(call(element,"getContentDescription"));
         boolean skip=MamlWidgetPolicy.decoration(type,name,src,number(call(element,"getWidth")),number(call(element,"getHeight")),number(call(root,"getWidth")),number(call(root,"getHeight")),interactive,!description.isEmpty());
-        String diagnostic=type+" name="+name+" src="+src+" removed="+skip;
+        String diagnostic=type+" name="+name+" src="+src+" size="+number(call(element,"getWidth"))+"x"+number(call(element,"getHeight"))+" root="+number(call(root,"getWidth"))+"x"+number(call(root,"getHeight"))+" removed="+skip;
         if(card.described.size()<32&&card.described.add(diagnostic)){if(skip)card.removed++;log.accept("MAML layer "+diagnostic);if(skip)changed.accept(summary());}
         return skip;
     }
     static Object engineRoot(View host){if(!nativeHost(host))return null;Object root=call(host,"getMaMlRoot");if(root==null)root=call(host,"getRoot");return root==null?field(host,"mRoot"):root;}
     private void removeOwned(Object root,View owner){Card card=roots.get(root);if(card!=null&&card.host.get()==owner)remove(root);}
-    private void remove(Object root){Card removed=roots.remove(root);if(removed!=null&&removed.underlay!=null)removed.underlay.restore();}
+    private void remove(Object root){Card removed=roots.remove(root);if(removed!=null){if(removed.underlay!=null)removed.underlay.restore();if(removed.decoration!=null)removed.decoration.restore();}}
     String summary(){int bound=0,rendered=0,removed=0;synchronized(roots){for(Card card:roots.values())if(card.host.get()!=null){bound++;if(card.drawn)rendered++;removed+=card.removed;}}return bound+" MAML clock/weather bound, "+rendered+" rendered, "+removed+" background layers replaced";}
     private static boolean nativeHost(View host){for(Class<?> type=host.getClass();type!=null;type=type.getSuperclass())if(type.getName().equals("com.miui.home.launcher.maml.MaMlHostView")||type.getName().equals("com.miui.maml.MiAdvancedView")||type.getName().equals("miui.maml.MiAdvancedView")||type.getName().equals("com.miui.maml.component.MamlView")||type.getName().equals("miui.maml.component.MamlView")||type.getName().equals("com.miui.home.launcher.gadget.AwesomeClock"))return true;return false;}
     private void renderStatus(String message){if(renderMessages.size()<32&&renderMessages.add(message))log.accept(message);}

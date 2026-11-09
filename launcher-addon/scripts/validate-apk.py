@@ -21,11 +21,15 @@ with zipfile.ZipFile(apk) as z:
  expected=set(re.findall(r'uniform\s+float[234]?\s+(\w+)',shader.decode()))
  actual=set(re.findall(r'setFloatUniform\("([^"]+)"',(root/'app/src/main/java/io/github/devarix/kashiglass/LiquidGlassDrawable.java').read_text()))
  assert expected==actual,(expected-actual,actual-expected)
+ kyant=json.loads((root/'compatibility/kyant-upstream.json').read_text())
+ assert hashlib.sha256(z.read('assets/shaders/kyant_refraction.agsl')).hexdigest()==kyant['shader_sha256']
+ assert b'Apache License' in z.read('assets/licenses/AndroidLiquidGlass-Apache-2.0.txt')
+ report['kyant_shader_verified']=True
  report.update(liquid_glyphs=700,qwea0_shader_unmodified=True,shader_uniforms_complete=True)
  assert z.read('assets/xposed_init').decode().strip()=='io.github.devarix.kashiglass.GlassHook'
  report.update(icon_mappings=700,source_assets_match=True,asset_descriptors_supported=True,apk_sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
 units=list((root/'app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'))
-assert {'TEST-io.github.devarix.kashiglass.ControllerStatusTest.xml','TEST-io.github.devarix.kashiglass.SupportReportTest.xml','TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml','TEST-io.github.devarix.kashiglass.WeakIdentityTest.xml'}<={p.name for p in units}
+assert {'TEST-io.github.devarix.kashiglass.InheritedMethodsTest.xml','TEST-io.github.devarix.kashiglass.ControllerStatusTest.xml','TEST-io.github.devarix.kashiglass.SupportReportTest.xml','TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml','TEST-io.github.devarix.kashiglass.WeakIdentityTest.xml'}<={p.name for p in units}
 count=0
 for unit_path in units:
  unit=ET.parse(unit_path).getroot()
