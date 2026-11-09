@@ -1,3 +1,11 @@
+# 0.13.0 targeted follow-up: repeated transitions
+
+Phone report on 0.12.0: the first transitions used glass, later ones used stock, and repeated transitions left stock artwork on the launcher. Settings did not recover it.
+
+Source review found that `State.applied` did not prove the live drawable was still owned, and `rememberCurrent` could import an arbitrary native BitmapDrawable into the canonical glyph cache. The new `LiveIconBinding` retains only validated decoded/generated artwork, checks live drawable identity and bitmap generation/recycling, and repairs native replacements. The pre-draw watcher repairs bypassed setters and restores stale visible compound slots while preserving native hides, transparent masks and clears. Frosted live bitmaps are copied before exposure. Animation handoffs resolve the current target every time and refresh before FloatingIconView2/Layer2 derive their layers.
+
+Production ownership/watcher/handoff classes are exercised in the Android host suite: 500 stock replacements and 500 recycled/alternating-target handoffs per API, mutation/recycling, style/app rebinding, native hide/clear, detach/reattach. The host executes Android classes and native Bitmap graphics, but not Xposed hook dispatch or the full launcher. Phone confirmation is still required. Preserved renderer hashes and all 1,400 packaged PNGs remain unchanged. No new search/blur/clock/weather styling is claimed in this follow-up.
+
 # 0.12.0 build audit
 
 Scope: the add-on's Java sources, exported provider/manifest, settings/restart flow, icon generation/rendering, native search requests, widget/surface lifecycle, asset validation and release workflow. This is a bounded source/runtime audit, not a claim that every device-specific bug has been eliminated. Icon artwork and the Liquid/Frosted renderer parameters were preserved.

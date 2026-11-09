@@ -1,5 +1,13 @@
 Developer: **devarix**
 
+## 0.13.0 — Recover artwork after repeated app animations
+
+Fixes a verified recovery/cache-ownership defect matching the 0.12.0 phone report: native drawable replacement could leave the applied flag set, and an unverified stock bitmap could then overwrite cached glass artwork. Per-view bindings now retain trusted glyphs, verify the actual drawable, repair native field/drawing-slot replacement before rendering, and isolate Frosted bitmap pixels from native mutation/recycling. Detached views stop their integrity watcher. Native null/transparent slots, source hiding and alpha remain authoritative.
+
+Every animation input is resolved afresh for its current target, including reused glass inputs. FloatingIconView2 and FloatingIconLayer2 refresh artwork before deriving native layers/surfaces. Widget/folder exclusions and native animation timing are unchanged. `ICON_REPAIRED` and `Animation layers refreshed` identify these paths in logs.
+
+Approved icon artwork, material shader/parameters, dock/search/widget styles are unchanged. The host regression suite runs 500 native drawable replacements and 500 recycled animation handoffs on **each** of APIs 33 and 35, plus mutation, style/app rebinding, hide/clear and watcher detach/reattach cases. Actual Kashi hook dispatch and phone animation rendering remain unverified; this is a targeted experimental fix, not a claim that all firmware bugs are eliminated.
+
 ## 0.12.0 — Build audit and regression fixes
 
 Preserves the approved icon artwork and renderer parameters. See [the audit](AUDIT.md) for scope, evidence and remaining limits.
@@ -16,7 +24,7 @@ Preserves the approved icon artwork and renderer parameters. See [the audit](AUD
 
 ## Apply
 
-Install, keep LSPosed scoped to **System launcher (`com.miui.home`)**, restart/reboot and verify **Loaded hook: 0.12.0-test — matches app**, with a fresh launcher response. Keep your preferred icon material. The last phone log was still 0.9.0, so it did not exercise the later animation fixes.
+Install, keep LSPosed scoped to **System launcher (`com.miui.home`)**, restart/reboot and verify **Loaded hook: 0.13.0-test — matches app**, with a fresh launcher response. Keep your preferred icon material. The latest phone report confirmed the repeated-transition issue on 0.12.0. Restarting the launcher is required to load the new hook and discard the old process caches.
 
 **Signing remains a configuration limitation:** this GitHub connection cannot administer Actions secrets (HTTP 403). Without the managed-signing secrets, CI still uses an ephemeral debug key and clearly reports that mode. Android can reject an in-place update from an earlier differently signed test APK. See [signing setup](SIGNING.md); if reinstalling is required, save your settings report, reinstall **devarix Glass only**, restore its scope/options and reboot. Keep System launcher installed.
 

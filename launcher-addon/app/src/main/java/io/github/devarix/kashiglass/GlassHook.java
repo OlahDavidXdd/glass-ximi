@@ -60,6 +60,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static final class State {
         Drawable original;
         final SourceVisibility visibility=new SourceVisibility();
+        final LiveIconBinding binding=new LiveIconBinding();
         boolean applied,blurred,listener;
         ViewOutlineProvider outline;
         boolean clip;
@@ -89,7 +90,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 Drawable incoming=(Drawable)p.args[0];if(incoming==null||incoming.getOpacity()==android.graphics.PixelFormat.TRANSPARENT){state.visibility.hidden=true;state.applied=false;return;}
                 state.visibility.hidden=false;state.visibility.alpha=incoming.getAlpha();state.resolveCached=false;rememberCurrent(view,state);captureOriginal(view,state,(Drawable)p.args[0]);state.applied=false;
                 String pkg=resolve(view);Bitmap bitmap=enabled?ICONS.get(assetKey(pkg)):null;
-                if(bitmap!=null){p.args[0]=makeDrawable(view,bitmap);state.applied=true;state.packageName=pkg;}
+                if(bitmap!=null&&!bitmap.isRecycled()){p.args[0]=makeDrawable(view,bitmap);state.binding.installed(assetKey(pkg),bitmap,(Drawable)p.args[0]);state.applied=true;state.packageName=pkg;}
             }
             @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()&&isIcon(p.thisObject))apply((View)p.thisObject);}
         });
@@ -121,7 +122,9 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     if(!enabled||INTERNAL.get()||Looper.myLooper()!=Looper.getMainLooper())return;
                     View view=(View)p.thisObject;State state=state(view);Object transparent=field(view,"mTransparentDrawable");
+                    if(p.args[0]==null)return;
                     if(transparent instanceof Drawable&&p.args[0]==transparent){state.visibility.transparentPlaceholder();return;}
+                    if(p.args[0] instanceof Drawable&&((Drawable)p.args[0]).getOpacity()==PixelFormat.TRANSPARENT)return;
                     apply(view);
                     if(state.applied)p.args[0]=state.visibility.hidden&&transparent instanceof Drawable?transparent:getIconDrawable(view);
                 }
@@ -177,7 +180,11 @@ public final class GlassHook implements IXposedHookLoadPackage {
             // ShortcutIcon's public setter rounds/rasterizes incoming artwork. Keep the live
             // Drawable in its actual drawing slot and let the launcher set compound bounds.
             XposedHelpers.setObjectField(view,"mIconDrawable",drawable);
-            if(drawable!=null){Object mask=field(view,"mTransparentDrawable");XposedHelpers.callMethod(view,"applyCompoundDrawables",state(view).visibility.hidden&&mask instanceof Drawable?mask:drawable);}
+            if(drawable!=null){
+                Drawable current=((android.widget.TextView)view).getCompoundDrawables()[1];Object mask=field(view,"mTransparentDrawable");
+                Drawable visible=LiveIconBinding.drawingSlot(drawable,current,mask instanceof Drawable?(Drawable)mask:null,state(view).visibility.hidden);
+                if(visible!=null)XposedHelpers.callMethod(view,"applyCompoundDrawables",visible);
+            }
             else ((android.widget.TextView)view).setCompoundDrawables(null,null,null,null);
             view.invalidate();
         }
@@ -216,6 +223,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         return Looper.myLooper()==Looper.getMainLooper()?state(view).visibility:null;
     }
     private static void captureOriginal(View view,State state,Drawable incoming){
+        if(state.binding.owns(incoming))return;
         if(incoming instanceof OwnedTransitionDrawable){Object raw=field(view.getTag(),"mIconDrawable");if(raw instanceof Drawable&&!(raw instanceof OwnedTransitionDrawable)&&!(raw instanceof LiquidGlassDrawable))state.original=(Drawable)raw;}
         else if(!(incoming instanceof LiquidGlassDrawable))state.original=incoming;
         state.originalKey=resolve(view);
@@ -240,7 +248,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         if(target instanceof View){
             if(!isIcon(target))return null;View view=(View)target;
             Object value=XposedHelpers.getAdditionalInstanceField(view,"devarix_artwork");
-            if(Looper.myLooper()==Looper.getMainLooper()&&(!(value instanceof Artwork)||!Objects.equals(((Artwork)value).key,resolve(view)))){
+            if(Looper.myLooper()==Looper.getMainLooper()){
                 apply(view);value=XposedHelpers.getAdditionalInstanceField(view,"devarix_artwork");
             }
             if(!(value instanceof Artwork))return null;Artwork artwork=(Artwork)value;
@@ -263,13 +271,11 @@ public final class GlassHook implements IXposedHookLoadPackage {
         TRANSITIONS.put(key,ready);debug(screenMatch?"ANIMATION_CACHE_REBUILT":"ANIMATION_STATIC_FALLBACK",key);return ready;
     }
     private static void rememberCurrent(View view,State state){
-        String key=resolve(view);if(!state.applied||key==null||!key.equals(state.packageName))return;
-        Drawable current=getIconDrawable(view);
-        if(current instanceof LiquidGlassDrawable)ICONS.put(assetKey(key),((LiquidGlassDrawable)current).glyph());
-        else if(current instanceof BitmapDrawable)ICONS.put(assetKey(key),((BitmapDrawable)current).getBitmap());
+        String key=resolve(view);Bitmap trusted=state.binding.trusted(assetKey(key));
+        if(key!=null&&trusted!=null)ICONS.put(assetKey(key),trusted);
     }
     private static String assetKey(String pkg){return style+":"+(pkg==null?"":pkg);}
-    private static Drawable makeDrawable(View view,Bitmap bitmap){Drawable result="liquid".equals(style)||GlassConfig.automaticKey(resolve(view))?new LiquidGlassDrawable(view,bitmap,wallpaper,blur,radius,GlassHook::report):new BitmapDrawable(view.getResources(),bitmap);result.setAlpha(state(view).visibility.alpha);return result;}
+    private static Drawable makeDrawable(View view,Bitmap bitmap){Drawable result="liquid".equals(style)||GlassConfig.automaticKey(resolve(view))?new LiquidGlassDrawable(view,bitmap,wallpaper,blur,radius,GlassHook::report):new BitmapDrawable(view.getResources(),OwnedTransitionDrawable.copy(bitmap));result.setAlpha(state(view).visibility.alpha);return result;}
     private static void refreshLiquid(){if(wallpaper!=null&&snapshotWallpaperVersion!=wallpaper.version()){snapshotWallpaperVersion=wallpaper.version();TRANSITIONS.evictAll();debug("TRANSITION_CACHE","Wallpaper content changed; snapshots cleared");}if(surfaces!=null)surfaces.invalidate();if(!enabled)return;for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){apply(view);view.invalidate();}}
     private static void initialize(){
         synchronized(EARLY_LOGS){while(!EARLY_LOGS.isEmpty()){String[] entry=EARLY_LOGS.removeFirst();debug(entry[0],entry[1]);}}
@@ -372,7 +378,10 @@ public final class GlassHook implements IXposedHookLoadPackage {
         Object tag=view.getTag();
         sample(view.getClass().getName()+":"+pkg+":"+(tag==null?"null":tag.getClass().getName()),"view="+view.getClass().getName()+" mapping="+pkg+" tagType="+(tag==null?"null":tag.getClass().getName()));
         if(!enabled||pkg==null){restore(view,state);return;}
-        Bitmap bitmap=ICONS.get(assetKey(pkg));
+        Bitmap bitmap=state.binding.trusted(assetKey(pkg));
+        if(bitmap!=null)ICONS.put(assetKey(pkg),bitmap);
+        else bitmap=ICONS.get(assetKey(pkg));
+        if(bitmap!=null&&bitmap.isRecycled()){ICONS.remove(assetKey(pkg));bitmap=null;}
         if(bitmap==null&&GlassConfig.automaticKey(pkg)&&pkg.equals(state.originalKey)){
             Drawable original=state.original!=null?state.original:getIconDrawable(view);
             try{Bitmap captured=AutoGlyph.capture(original);if(captured!=null){bitmap=AutoGlyph.generate(captured);captured.recycle();ICONS.put(assetKey(pkg),bitmap);sample("generated:"+pkg,"Automatic silver glyph generated for "+pkg);}}
@@ -381,19 +390,41 @@ public final class GlassHook implements IXposedHookLoadPackage {
         if(bitmap==null){if(state.applied&&!pkg.equals(state.packageName))restore(view,state);if(!GlassConfig.automaticKey(pkg))load(pkg,view);return;}
         XposedHelpers.setAdditionalInstanceField(view,"devarix_icon_glyph",bitmap);
         if(!(previous instanceof Artwork)||((Artwork)previous).glyph!=bitmap||!pkg.equals(((Artwork)previous).key))XposedHelpers.setAdditionalInstanceField(view,"devarix_artwork",new Artwork(pkg,bitmap));
-        if(!state.applied||!pkg.equals(state.packageName)){
-            if(!state.applied&&state.original==null)state.original=getIconDrawable(view);
-            INTERNAL.set(true);try{setIconDrawable(view,makeDrawable(view,bitmap));}finally{INTERNAL.set(false);}
-            state.applied=true;state.packageName=pkg;
+        if(!state.applied&&state.original==null)state.original=getIconDrawable(view);
+        boolean repaired;
+        INTERNAL.set(true);try{
+            repaired=state.binding.repair(assetKey(pkg),bitmap,new LiveIconBinding.Slot(){
+                public Drawable get(){return getIconDrawable(view);}
+                public void set(Drawable drawable){setIconDrawable(view,drawable);}
+            },source->makeDrawable(view,source));
+            repairDrawingSlot(view,state);
+        }finally{INTERNAL.set(false);}
+        state.applied=true;state.packageName=pkg;
+        if(repaired){
+            debug("ICON_REPAIRED","Verified artwork restored: "+pkg);
             if(!screenMatch)warmTransition(view,pkg);
-            sample("applied:"+pkg,"Applied "+style+" mapping="+pkg+" view="+view.getClass().getName());
         }
-        if(!state.listener){state.listener=true;view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
+        if(!state.listener){state.listener=true;new IconIntegrityWatcher(view,GlassHook::verifyLiveIcon);view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
             public void onViewAttachedToWindow(View v){MAIN.post(()->apply(v));}
             public void onViewDetachedFromWindow(View v){State s=STATES.get(v);if(s!=null)clearBlur(v,s);}
         });}
         if(state.applied&&!screenMatch)warmTransition(view,pkg);
         if(!screenMatch&&blur&&view instanceof ImageView&&view.isAttachedToWindow()&&(!"liquid".equals(style)||!wallpaper.isAvailable()))nativeBlur(view,state);else clearBlur(view,state);
+    }
+    private static void verifyLiveIcon(View view){
+        if(!enabled||INTERNAL.get())return;State state=STATES.get(view);
+        if(state==null||!state.applied)return;
+        try{
+            if(!state.binding.owns(getIconDrawable(view))){apply(view);return;}
+            INTERNAL.set(true);try{repairDrawingSlot(view,state);}finally{INTERNAL.set(false);}
+        }catch(Throwable e){error("ICON_INTEGRITY_ERROR",e);}
+    }
+    private static void repairDrawingSlot(View view,State state){
+        if(!(view instanceof android.widget.TextView)||view instanceof ImageView)return;
+        Drawable owned=getIconDrawable(view);if(!state.binding.owns(owned))return;
+        Drawable current=((android.widget.TextView)view).getCompoundDrawables()[1];Object mask=field(view,"mTransparentDrawable");
+        Drawable desired=LiveIconBinding.drawingSlot(owned,current,mask instanceof Drawable?(Drawable)mask:null,state.visibility.hidden);
+        if(desired!=current&&desired!=null)XposedHelpers.callMethod(view,"applyCompoundDrawables",desired);
     }
     private static void load(String pkg,View view){
         String requestedStyle=style,key=assetKey(pkg);
@@ -455,6 +486,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         clearBlur(view,state);
         XposedHelpers.removeAdditionalInstanceField(view,"devarix_artwork");
         if(state.applied){INTERNAL.set(true);try{if(view instanceof ImageView)setIconDrawable(view,state.original);else{XposedHelpers.callMethod(view,"setIconDrawable",state.original,null);if(state.original!=null)state.original.setAlpha(state.visibility.alpha);Object mask=field(view,"mTransparentDrawable");if(state.visibility.hidden&&mask instanceof Drawable)XposedHelpers.callMethod(view,"applyCompoundDrawables",mask);}}finally{INTERNAL.set(false);}state.applied=false;state.packageName=null;}
+        state.binding.clear();
     }
     private static void widgetReport(String message){
         if(context==null)return;
