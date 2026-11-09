@@ -1,5 +1,13 @@
 Developer: **devarix**
 
+## 0.20.0 — Black liquid-glass controller
+
+The controller uses a pure black canvas with neutral translucent glass cards, individual option rows, reflective switch tracks/thumbs, glass buttons, blur-strength control and a floating glass bottom navigation pill. Checked and selected controls have stronger highlights; native switch behavior, ripples, labels, preference persistence and accessibility remain. This is controller glass styling, not a claim of compositor blur or optical refraction against its plain black background.
+
+Launcher icon artwork, search/dock/drawer/widget materials and animation hooks are unchanged from 0.19.0. The supplied Weather trace confirms 0.19.0 loaded and glass-owned field/slot drawables immediately after completion and on the next frame. It does not identify any other layer displaying stock artwork or establish visual animation success.
+
+Verification: 77 unit tests, 216 Android runtime cases across API 33/35, lint, asset and signature validation. Screenshots are rendered from the native controller UI. Install/reboot and refresh Overview to confirm loaded hook **0.20.0-test**. See [signing/update limits](SIGNING.md).
+
 ## 0.19.0 — Controller redesign and clock engine fixes
 
 The controller now has Overview, Appearance and Diagnostics tabs, a neutral dark design, clear master/surface controls, and separate installed-app and loaded-hook versions. Cached hook information is marked unconfirmed until a fresh reply arrives. Restart feedback survives tab changes and rotation; expired requests do not report success. The focused animation report keeps return-state logs and filters unrelated widget render messages. Existing material preferences are preserved.

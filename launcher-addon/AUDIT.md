@@ -1,3 +1,9 @@
+# 0.20.0: controller-only glass styling
+
+Pure-black controller background; native custom Canvas glass surfaces for cards/options/buttons, state-list switch thumb/track, slider and floating bottom navigation. No launcher shader, PNG assets, target resolution, widget engine hooks or animation code changes. Existing 77 unit and 216 runtime cases retained, including real native UI screenshot rendering and preference/restart/tab behavior.
+
+The user Weather trace on 0.19.0 reports `field_owned=true slot_owned=true hidden=false alpha=255` at completion and next-frame checks. This rules out an unowned source field/slot at those sampled moments for that view only; it cannot identify pixels shown by other layers or exclude later native changes. No animation behavior fix is claimed in this UI release.
+
 # 0.19.0: controller, clock ownership and native request checks
 
 AwesomeClock's reflected `mRoot`/`mAwesomeView` path was missing from the prior discovery. Both MAML namespaces and actual root class loaders are covered. Root ownership is canonicalized to the render child and old aliases cannot detach a new owner. Six added Android cases verify these boundaries across API 33/35 using verified API-shaped fixtures. Real engine dispatch still needs a phone.
