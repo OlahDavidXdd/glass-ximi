@@ -65,6 +65,8 @@ public class LiveIconBindingRuntimeTest {
         assertSame(mask,LiveIconBinding.drawingSlot(owned,stock,mask,true));
         assertSame(owned,LiveIconBinding.drawingSlot(owned,stock,mask,false));
         Drawable transparent=new ColorDrawable(Color.TRANSPARENT);assertSame(transparent,LiveIconBinding.drawingSlot(owned,transparent,mask,false));
+        Drawable faded=drawable(glyph);faded.setAlpha(0);
+        assertSame("A faded old icon is not a clear placeholder",owned,LiveIconBinding.drawingSlot(owned,faded,mask,false));
     }
     @Test public void preDrawRepairsAttachedViewAndStopsAfterDetach(){
         Activity activity=Robolectric.buildActivity(Activity.class).setup().get();activity.setContentView(image);

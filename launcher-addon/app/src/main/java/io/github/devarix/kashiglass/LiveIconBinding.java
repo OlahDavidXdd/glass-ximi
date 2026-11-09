@@ -34,7 +34,7 @@ final class LiveIconBinding {
     static Drawable drawingSlot(Drawable owned,Drawable current,Drawable mask,boolean hidden){
         // Native clear/hide is authoritative, even while the backing icon field is repaired.
         if(hidden&&mask!=null)return mask;
-        if(current==null||current==mask||current.getOpacity()==PixelFormat.TRANSPARENT)return current;
+        if(current==null||current==mask||current instanceof android.graphics.drawable.ColorDrawable&&current.getOpacity()==PixelFormat.TRANSPARENT)return current;
         return owned;
     }
 }

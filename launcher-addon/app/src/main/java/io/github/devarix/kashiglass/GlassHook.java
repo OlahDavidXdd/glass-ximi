@@ -124,7 +124,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                     View view=(View)p.thisObject;State state=state(view);Object transparent=field(view,"mTransparentDrawable");
                     if(p.args[0]==null)return;
                     if(transparent instanceof Drawable&&p.args[0]==transparent){state.visibility.transparentPlaceholder();return;}
-                    if(p.args[0] instanceof Drawable&&((Drawable)p.args[0]).getOpacity()==PixelFormat.TRANSPARENT)return;
+                    if(p.args[0] instanceof ColorDrawable&&((Drawable)p.args[0]).getOpacity()==PixelFormat.TRANSPARENT)return;
                     apply(view);
                     if(state.applied)p.args[0]=state.visibility.hidden&&transparent instanceof Drawable?transparent:getIconDrawable(view);
                 }
