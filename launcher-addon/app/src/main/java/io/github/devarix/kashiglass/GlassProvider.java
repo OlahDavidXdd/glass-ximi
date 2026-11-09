@@ -24,16 +24,17 @@ public final class GlassProvider extends ContentProvider {
         Bundle result = new Bundle();
         if ("settings".equals(method)) {
             long connected=System.currentTimeMillis();
-            var edit=prefs.edit().putLong("connected_at",connected);
+            var edit=prefs.edit();
             if(Binder.getCallingUid()!=android.os.Process.myUid()){
                 int code=extras==null?0:Math.max(0,extras.getInt("hook_code",0));
                 String version=extras==null?"unreported":DiagnosticLog.clean(extras.getString("hook_version"),64);
-                int pid=extras==null?0:Math.max(0,extras.getInt("hook_pid",0));
+                int pid=Binder.getCallingPid();
                 String capabilities=extras==null?"":DiagnosticLog.clean(extras.getString("hook_capabilities"),128);
-                edit.putInt("hook_code",code).putString("hook_version",version).putInt("hook_pid",pid).putString("hook_capabilities",capabilities);
+                edit.putLong("connected_at",connected).putInt("hook_code",code).putString("hook_version",version).putInt("hook_pid",pid).putString("hook_capabilities",capabilities);
                 DebugLog.event(getContext(),"HOOK_IDENTITY","loaded="+version+" code="+code+" pid="+pid+" installed="+BuildConfig.VERSION_NAME);
             }
             edit.apply();
+            if(Binder.getCallingUid()!=android.os.Process.myUid())getContext().getContentResolver().notifyChange(Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),null);
             String style=GlassConfig.style(prefs.getString("style","liquid"));
             result.putString("style",style);
             result.putBoolean("screen_match",prefs.getBoolean("screen_match",true));
@@ -66,7 +67,7 @@ public final class GlassProvider extends ContentProvider {
         } else if ("consume_restart".equals(method)) {
             if(Binder.getCallingUid()==android.os.Process.myUid())throw new SecurityException("Only the launcher may consume a restart");
             synchronized(GlassProvider.class){
-                String token=prefs.getString("restart_token",null);int pid=extras==null?0:extras.getInt("pid",0);
+                String token=prefs.getString("restart_token",null);int pid=Binder.getCallingPid();
                 if(RestartHandshake.valid(token,prefs.getLong("restart_created",-1),SystemClock.elapsedRealtime(),prefs.getInt("restart_pid",0),pid)){
                     prefs.edit().remove("restart_token").putString("restart_ack",token).commit();result.putString("token",token);
                     DebugLog.event(getContext(),"SELF_RESTART_ACK","Launcher PID="+pid);

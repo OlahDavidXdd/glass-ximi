@@ -1,0 +1,6 @@
+{
+  "commit": "60cc488b2cc35497592020df9799834133b76a24",
+  "path": "launcher-addon/app/src/main/java/io/github/devarix/kashiglass/GlassProvider.java",
+  "sha256": "b0527463f4ef623fdab61aa0c446cc7618ae89dd1a332e90c096c53e2f74593b",
+  "purpose": "Negative control for reported PID spoofing, stale self-connection and restart identity."
+}

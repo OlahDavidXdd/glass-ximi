@@ -5,23 +5,28 @@ import android.graphics.drawable.*;
 
 final class AutoGlyph {
     private AutoGlyph(){}
+    private static final class ForegroundState {final Drawable.Callback callback;final Rect bounds;ForegroundState(Drawable drawable){callback=drawable.getCallback();bounds=new Rect(drawable.getBounds());}}
     static Bitmap capture(Drawable original){
         if(original==null||original instanceof LiquidGlassDrawable)return null;
-        Drawable source=launcherForeground(original);
+        java.util.Map<Drawable,ForegroundState> callbacks=new java.util.IdentityHashMap<>();
+        try{
+        Drawable source=launcherForeground(original,callbacks);
         if(source instanceof AdaptiveIconDrawable){
             AdaptiveIconDrawable adaptive=(AdaptiveIconDrawable)source;
             source=adaptive.getMonochrome()!=null?adaptive.getMonochrome():adaptive.getForeground();
         }
         if(source==null)return null;
         Drawable.ConstantState constant=source.getConstantState();if(constant!=null)source=constant.newDrawable().mutate();
+        if(source instanceof BitmapDrawable&&((BitmapDrawable)source).getBitmap()==null)return null;
         if(source instanceof BitmapDrawable&&((BitmapDrawable)source).getBitmap().getConfig()==Bitmap.Config.HARDWARE){
             Bitmap copy=((BitmapDrawable)source).getBitmap().copy(Bitmap.Config.ARGB_8888,false);if(copy==null)return null;source=new BitmapDrawable(copy);
         }
         Rect old=new Rect(source.getBounds());Bitmap bitmap=Bitmap.createBitmap(128,128,Bitmap.Config.ARGB_8888);
         try{source.setBounds(0,0,128,128);source.draw(new Canvas(bitmap));}finally{source.setBounds(old);}
         return bitmap;
+        }finally{for(var entry:callbacks.entrySet()){try{entry.getKey().setBounds(entry.getValue().bounds);}finally{entry.getKey().setCallback(entry.getValue().callback);}}}
     }
-    private static Drawable launcherForeground(Drawable original){
+    private static Drawable launcherForeground(Drawable original,java.util.Map<Drawable,ForegroundState> callbacks){
         Drawable source=original;
         try{
             if(source.getClass().getName().equals("com.miui.home.common.drawable.BadgeDrawable")){Object back=source.getClass().getMethod("getBackDrawable").invoke(source);if(back instanceof Drawable)source=(Drawable)back;}
@@ -29,7 +34,7 @@ final class AutoGlyph {
                 Object layers=source.getClass().getMethod("getForegroundLayers").invoke(source);java.util.ArrayList<Drawable> foregrounds=new java.util.ArrayList<>();
                 if(layers instanceof Iterable<?>)for(Object layer:(Iterable<?>)layers){
                     Object value=layer.getClass().getMethod("getCurrentShowDrawable").invoke(layer);
-                    if(value instanceof Drawable){Drawable drawable=(Drawable)value;Drawable.ConstantState state=drawable.getConstantState();foregrounds.add(state==null?drawable:state.newDrawable().mutate());}
+                    if(value instanceof Drawable){Drawable drawable=(Drawable)value;Drawable.ConstantState state=drawable.getConstantState();if(state==null)callbacks.put(drawable,new ForegroundState(drawable));foregrounds.add(state==null?drawable:state.newDrawable().mutate());}
                 }
                 if(!foregrounds.isEmpty())return new LayerDrawable(foregrounds.toArray(new Drawable[0]));
             }

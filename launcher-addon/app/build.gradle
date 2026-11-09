@@ -2,10 +2,27 @@ plugins { id 'com.android.application' }
 android {
     namespace 'io.github.devarix.kashiglass'
     compileSdk 35
-    defaultConfig { applicationId 'io.github.devarix.kashiglass'; minSdk 33; targetSdk 35; versionCode 12; versionName '0.11.0-test' }
+    defaultConfig { applicationId 'io.github.devarix.kashiglass'; minSdk 33; targetSdk 35; versionCode 13; versionName '0.12.0-test' }
     buildFeatures { buildConfig true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     androidResources { noCompress += ['png'] }
-    buildTypes { release { minifyEnabled false } }
+    def managedStore = System.getenv('DEVARIX_KEYSTORE_FILE')
+    if (managedStore) {
+        ['DEVARIX_STORE_PASSWORD','DEVARIX_KEY_PASSWORD','DEVARIX_KEY_ALIAS'].each { key ->
+            if (!System.getenv(key)) throw new GradleException("Missing managed signing setting: ${key}")
+        }
+        signingConfigs {
+            managed {
+                storeFile file(managedStore)
+                storePassword System.getenv('DEVARIX_STORE_PASSWORD')
+                keyPassword System.getenv('DEVARIX_KEY_PASSWORD')
+                keyAlias System.getenv('DEVARIX_KEY_ALIAS')
+            }
+        }
+    }
+    buildTypes {
+        debug { if (managedStore) signingConfig signingConfigs.managed }
+        release { minifyEnabled false; if (managedStore) signingConfig signingConfigs.managed }
+    }
 }
 dependencies { compileOnly 'de.robv.android.xposed:api:82'; testImplementation 'junit:junit:4.13.2' }

@@ -9,6 +9,14 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Build audit and regression fixes (0.12.0)
+
+[Download 0.12.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.12.0-test). Fixes settings/material invalidation, stale source state on re-enable, restart queue starvation, widget restoration/async updates, provider PID handling, fresh connection status, automatic-icon capture ownership and wallpaper cleanup. Approved icon artwork/renderer parameters are preserved. See [the audit](AUDIT.md) for findings and verification limits.
+
+Install, restart/reboot and check **Loaded hook: 0.12.0-test — matches app**, with a fresh launcher response. Host tests do not establish that Xiaomi blur, LSPosed dispatch or full Kashi gestures are correct on your firmware.
+
+[Persistent signing support](SIGNING.md) is prepared, but configuring repository secrets is blocked by this connection’s secret-administration permissions (HTTP 403). Without those secrets, test APKs still use runner debug keys; updates from older signatures can require reinstalling the add-on. Published release assets are now immutable and validation records the public certificate fingerprint/signing mode.
+
 ## Attached compact-search blur (0.11.0)
 
 [Download 0.11.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.11.0-test). The phone log showed 0.9.0 was both installed and loaded, so it did not exercise the 0.10.0 animation fixes. Those fixes are included unchanged here.

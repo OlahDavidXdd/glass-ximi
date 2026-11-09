@@ -2,6 +2,8 @@ package io.github.devarix.kashiglass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 public class SourceVisibilityTest {
+    @Test public void reenablingObservesActualVisibleNativeState(){SourceVisibility state=new SourceVisibility();state.bind("app.a");state.visibility(4);state.opacity(0);state.observe(false,255);assertFalse(state.bind("app.a"));assertFalse(state.hidden);assertEquals(255,state.alpha);}
+    @Test public void nativeStateObservationClampsButPreservesHiddenState(){SourceVisibility state=new SourceVisibility();state.observe(true,999);assertTrue(state.hidden);assertEquals(255,state.alpha);state.observe(false,-5);assertFalse(state.hidden);assertEquals(0,state.alpha);}
     @Test public void sameAppRebindKeepsNativeHideAndFade(){SourceVisibility state=new SourceVisibility();state.bind("app.a");state.visibility(4);state.opacity(.25f);assertFalse(state.bind("app.a"));assertTrue(state.hidden);assertEquals(63,state.alpha);}
     @Test public void recycledDrawerSlotDoesNotInheritPreviousAppsHiddenState(){SourceVisibility state=new SourceVisibility();state.bind("app.a");state.visibility(4);state.opacity(0);assertTrue(state.bind("app.b"));assertFalse(state.hidden);assertEquals(255,state.alpha);}
     @Test public void missingOrFirstBindingDoesNotUndoNativeVisibility(){SourceVisibility state=new SourceVisibility();state.visibility(4);assertFalse(state.bind(null));assertFalse(state.bind("app.a"));assertTrue(state.hidden);}

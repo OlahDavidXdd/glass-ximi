@@ -32,6 +32,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static void sample(String key,String message){if(debugEnabled&&SAMPLES.size()<60&&SAMPLES.add(key))debug("ICON_SAMPLE",message);}
 
     private static final ExecutorService IO=Executors.newSingleThreadExecutor();
+    private static final ExecutorService CONTROL_IO=Executors.newSingleThreadExecutor();
+    private static final ExecutorService RESTART_IO=Executors.newSingleThreadExecutor();
     private static final Map<View,State> STATES=new WeakHashMap<>();
     private static final Map<String,ArrayList<WeakReference<View>>> PENDING=new HashMap<>();
     private static final Set<String> WARMING=new HashSet<>();
@@ -62,7 +64,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         ViewOutlineProvider outline;
         boolean clip;
         String packageName, resolvedPackage, originalKey;
-        Object lastTag,lastParentTag;
+        final WeakIdentity lastTag=new WeakIdentity(),lastParentTag=new WeakIdentity();
         boolean resolveCached,blurFailed;
         int lastRadius,lastWidth,lastHeight;
     }
@@ -191,7 +193,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         else if(enabled&&mapped==0)message+=" No app mappings resolved. Open the app drawer and check again.";
         if(message.equals(lastBindings))return;lastBindings=message;
         final String value=message;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("bindings",value);context.getContentResolver().call(GlassProvider.SETTINGS,"diagnostics",null,data);}catch(Throwable e){error("DIAGNOSTICS_ERROR",e);}});
+        CONTROL_IO.execute(()->{try{Bundle data=new Bundle();data.putString("bindings",value);context.getContentResolver().call(GlassProvider.SETTINGS,"diagnostics",null,data);}catch(Throwable e){error("DIAGNOSTICS_ERROR",e);}});
     }
     private static void walk(View view){
         if(!enabled)return;
@@ -283,7 +285,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         reload();
     }
     private static void selfRestart(){
-        IO.execute(()->{
+        RESTART_IO.execute(()->{
             try{Bundle request=new Bundle();request.putInt("pid",android.os.Process.myPid());
                 Bundle response=context.getContentResolver().call(GlassProvider.RESTART,"consume_restart",null,request);
                 if(response!=null&&response.getString("token")!=null){debug("SELF_RESTART","Acknowledged; exiting own launcher process");MAIN.postDelayed(()->android.os.Process.killProcess(android.os.Process.myPid()),150);}
@@ -291,7 +293,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         });
     }
     private static void reload(){
-        IO.execute(()->{
+        CONTROL_IO.execute(()->{
             try{
                 Bundle identity=new Bundle();identity.putInt("hook_code",BuildConfig.VERSION_CODE);identity.putString("hook_version",BuildConfig.VERSION_NAME);identity.putInt("hook_pid",android.os.Process.myPid());identity.putString("hook_capabilities",selfRestartReady?HookVersion.RESTART_CAPABILITY:"");
                 Bundle config=context.getContentResolver().call(GlassProvider.SETTINGS,"settings",null,identity);
@@ -304,14 +306,20 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 // Identity/log checks may repeat; unchanged settings must not rebuild every surface mid-animation.
                 String configuration=nextStyle+":"+nextEnabled+":"+nextBlur+":"+nextAutomatic+":"+nextRadius+":"+nextWhite+":"+nextScreen+":"+nextDock+":"+nextSearch+":"+nextDrawer+":"+nextWidgets+":"+root;
-                if(configuration.equals(renderConfiguration)){MAIN.post(()->{settingsLoaded=true;});return;}
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
                 MAIN.post(()->{
                     if(configuration.equals(renderConfiguration)){settingsLoaded=true;return;}
+                    boolean enabling=nextEnabled&&!enabled;
                     boolean replace=!style.equals(nextStyle)||blur!=nextBlur||radius!=nextRadius||automatic!=nextAutomatic||whiteSymbols!=nextWhite||screenMatch!=nextScreen||!nextEnabled;
                     if(replace)TRANSITIONS.evictAll();
                     if(replace)for(View view:new ArrayList<>(STATES.keySet()))if(view!=null)restore(view,state(view));
+                    if(enabling)for(View view:new ArrayList<>(STATES.keySet()))if(view!=null){
+                        State state=state(view);Drawable nativeDrawable=getIconDrawable(view);
+                        Object mask=field(view,"mTransparentDrawable");
+                        boolean hidden=view instanceof android.widget.TextView?mask instanceof Drawable&&((android.widget.TextView)view).getCompoundDrawables()[1]==mask:nativeDrawable==null||nativeDrawable.getOpacity()==PixelFormat.TRANSPARENT;
+                        state.visibility.observe(hidden,nativeDrawable==null?255:nativeDrawable.getAlpha());
+                    }
                     renderConfiguration=configuration;settingsLoaded=true;
                     enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;whiteSymbols=nextWhite;screenMatch=nextScreen;packages=nextPackages;FAILED.clear();
                     LiquidGlassDrawable.configure(shader,plate,whiteSymbols,screenMatch);wallpaper.configure(enabled&&!screenMatch&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
@@ -326,8 +334,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static String resolve(View view){
         State state=state(view);Object tag=view.getTag();Object parentTag=view.getParent() instanceof View?((View)view.getParent()).getTag():null;
-        if(state.resolveCached&&tag==state.lastTag&&parentTag==state.lastParentTag)return state.resolvedPackage;
-        state.lastTag=tag;state.lastParentTag=parentTag;state.resolveCached=true;state.resolvedPackage=null;
+        if(state.resolveCached&&state.lastTag.matches(tag)&&state.lastParentTag.matches(parentTag))return state.resolvedPackage;
+        state.lastTag.set(tag);state.lastParentTag.set(parentTag);state.resolveCached=true;state.resolvedPackage=null;
         View current=view;
         for(int depth=0;current!=null&&depth<5;depth++){
             String result=fromInfo(current.getTag());if(result!=null){state.resolvedPackage=result;return result;}
@@ -445,19 +453,20 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static void restore(View view,State state){
         clearBlur(view,state);
+        XposedHelpers.removeAdditionalInstanceField(view,"devarix_artwork");
         if(state.applied){INTERNAL.set(true);try{if(view instanceof ImageView)setIconDrawable(view,state.original);else{XposedHelpers.callMethod(view,"setIconDrawable",state.original,null);if(state.original!=null)state.original.setAlpha(state.visibility.alpha);Object mask=field(view,"mTransparentDrawable");if(state.visibility.hidden&&mask instanceof Drawable)XposedHelpers.callMethod(view,"applyCompoundDrawables",mask);}}finally{INTERNAL.set(false);}state.applied=false;state.packageName=null;}
     }
     private static void widgetReport(String message){
         if(context==null)return;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("widgets",message);context.getContentResolver().call(GlassProvider.SETTINGS,"widgets",null,data);}catch(Throwable e){error("WIDGET_STATUS_ERROR",e);}});
+        CONTROL_IO.execute(()->{try{Bundle data=new Bundle();data.putString("widgets",message);context.getContentResolver().call(GlassProvider.SETTINGS,"widgets",null,data);}catch(Throwable e){error("WIDGET_STATUS_ERROR",e);}});
     }
     private static void surfaceReport(String message){
         if(context==null)return;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("surfaces",message);context.getContentResolver().call(GlassProvider.SETTINGS,"surfaces",null,data);}catch(Throwable e){error("SURFACE_STATUS_ERROR",e);}});
+        CONTROL_IO.execute(()->{try{Bundle data=new Bundle();data.putString("surfaces",message);context.getContentResolver().call(GlassProvider.SETTINGS,"surfaces",null,data);}catch(Throwable e){error("SURFACE_STATUS_ERROR",e);}});
     }
     private static void report(String message){
         if(context==null||message.equals(lastStatus))return;lastStatus=message;
-        IO.execute(()->{try{Bundle data=new Bundle();data.putString("status",message);context.getContentResolver().call(GlassProvider.SETTINGS,"report",null,data);}catch(Throwable e){error("STATUS_ERROR",e);}});
+        CONTROL_IO.execute(()->{try{Bundle data=new Bundle();data.putString("status",message);context.getContentResolver().call(GlassProvider.SETTINGS,"report",null,data);}catch(Throwable e){error("STATUS_ERROR",e);}});
     }
     private static void injectOption(Object fragment,ClassLoader loader){
         try{

@@ -9,6 +9,10 @@ final class HookVersion {
         for(String capability:capabilities.split(","))if(RESTART_CAPABILITY.equals(capability.trim()))return true;
         return false;
     }
+    static String status(int installed,String appName,int loaded,String hookName,long connected,long checkedAt){
+        if(checkedAt>0&&connected<checkedAt)return "Loaded hook: no fresh response. Last reported: "+hookName+". Check scope and restart/reboot; a saved version is not a live connection.";
+        return status(installed,appName,loaded,hookName,connected);
+    }
     static String status(int installed,String appName,int loaded,String hookName,long connected){
         if(connected==0)return "Loaded hook: not connected. Enable the LSPosed scope and reboot the phone.";
         if(loaded<=0)return "Loaded hook: version not reported; an older hook may still be running. App "+appName+". Reboot the phone to load this build.";

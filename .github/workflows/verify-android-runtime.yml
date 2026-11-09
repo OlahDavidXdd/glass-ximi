@@ -40,6 +40,18 @@ jobs:
             exit 1
           fi
           python3 verification/android-runtime/scripts/baseline.py check
+      - name: Require the older provider to reproduce identity/protocol bugs
+        run: |
+          python3 verification/android-runtime/scripts/baseline-provider.py
+          set +e
+          ./launcher-addon/gradlew -p verification/android-runtime test -PproviderBaselineRoot=results/provider-baseline-source -PverificationBuildDir=provider-baseline-build --tests io.github.devarix.kashiglass.ProviderRuntimeTest --no-daemon --console=plain > verification/android-runtime/results/provider-baseline.log 2>&1
+          baseline_exit=$?
+          set -e
+          if [ "$baseline_exit" -eq 0 ]; then
+            cat verification/android-runtime/results/provider-baseline.log
+            exit 1
+          fi
+          python3 verification/android-runtime/scripts/baseline-provider.py check
       - name: Summarize results and limits
         run: |
           python3 verification/android-runtime/scripts/report.py
@@ -53,5 +65,6 @@ jobs:
             verification/android-runtime/build/test-results/test
             verification/android-runtime/build/reports/tests/test
             verification/android-runtime/baseline-build/test-results/test
+            verification/android-runtime/provider-baseline-build/test-results/test
             verification/android-runtime/results
           retention-days: 30

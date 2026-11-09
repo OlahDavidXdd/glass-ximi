@@ -25,14 +25,14 @@ with zipfile.ZipFile(apk) as z:
  assert z.read('assets/xposed_init').decode().strip()=='io.github.devarix.kashiglass.GlassHook'
  report.update(icon_mappings=700,source_assets_match=True,asset_descriptors_supported=True,apk_sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
 units=list((root/'app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'))
-assert {'TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml'}<={p.name for p in units}
+assert {'TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml','TEST-io.github.devarix.kashiglass.WeakIdentityTest.xml'}<={p.name for p in units}
 count=0
 for unit_path in units:
  unit=ET.parse(unit_path).getroot()
  assert unit.get('failures')=='0' and unit.get('errors')=='0' and int(unit.get('skipped','0'))==0
  count+=int(unit.get('tests'))
-for name,digest in json.loads((root/'compatibility/preserved-appearance-090.json').read_text()).items():
+for name,digest in json.loads((root/'compatibility/preserved-renderers-0110.json').read_text()).items():
  assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass'/name).read_bytes()).hexdigest()==digest,name
-report.update(icon_appearance_unchanged_from_090=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
+report.update(icon_renderer_unchanged_from_0110=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
 text=json.dumps(report,indent=2);print(text)
 if len(sys.argv)>2:Path(sys.argv[2]).write_text(text+'\n')

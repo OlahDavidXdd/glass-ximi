@@ -6,14 +6,36 @@ if (findProperty('verificationBuildDir')) layout.buildDirectory.set(file(findPro
 def production = file('../../launcher-addon/app/src/main/java')
 sourceSets.main.java {
     srcDirs = [production]
-    include '**/OwnedTransitionDrawable.java', '**/LiquidGlassDrawable.java', '**/GlassSurface.java', '**/GlassBackdrop.java', '**/BackdropGeometry.java', '**/NativeScreenBackdrop.java', '**/SourceVisibility.java', '**/AnimationTargetResolver.java', '**/SearchGlassDrawable.java', '**/SearchBarBlur.java'
+    include '**/OwnedTransitionDrawable.java', '**/LiquidGlassDrawable.java', '**/GlassSurface.java', '**/GlassBackdrop.java', '**/BackdropGeometry.java', '**/NativeScreenBackdrop.java', '**/SourceVisibility.java', '**/AnimationTargetResolver.java', '**/SearchGlassDrawable.java', '**/SearchBarBlur.java', '**/LauncherWidgets.java', '**/WidgetSurfacePolicy.java', '**/GlassProvider.java', '**/GlassConfig.java', '**/DebugLog.java', '**/DiagnosticLog.java', '**/HookVersion.java', '**/RestartHandshake.java', '**/AutoGlyph.java', '**/AutoIconPixels.java', '**/BuildConfig.java', '**/WallpaperBackdrop.java'
 }
 if (findProperty('ownedBaselineRoot')) {
     def original = new File(production, 'io/github/devarix/kashiglass/OwnedTransitionDrawable.java').canonicalFile
     sourceSets.main.java.exclude { entry -> entry.file.canonicalFile == original }
     sourceSets.main.java.srcDir file(findProperty('ownedBaselineRoot'))
 }
+if (findProperty('providerBaselineRoot')) {
+    def original = new File(production, 'io/github/devarix/kashiglass/GlassProvider.java').canonicalFile
+    sourceSets.main.java.exclude { entry -> entry.file.canonicalFile == original }
+    sourceSets.main.java.srcDir file(findProperty('providerBaselineRoot'))
+}
+def generatedConfig = layout.buildDirectory.dir('generated-config')
+sourceSets.main.java.srcDir generatedConfig
+tasks.register('verificationBuildConfig') {
+    inputs.file file('../../launcher-addon/app/build.gradle')
+    outputs.dir generatedConfig
+    doLast {
+        def config = file('../../launcher-addon/app/build.gradle').text
+        def code = (config =~ /versionCode (\d+)/)[0][1]
+        def name = (config =~ /versionName '([^']+)'/)[0][1]
+        def target = new File(generatedConfig.get().asFile, 'io/github/devarix/kashiglass/BuildConfig.java')
+        target.parentFile.mkdirs()
+        target.text = "package io.github.devarix.kashiglass; public final class BuildConfig { public static final int VERSION_CODE = ${code}; public static final String VERSION_NAME = \"${name}\"; }"
+    }
+}
+tasks.named('compileJava') { dependsOn 'verificationBuildConfig' }
 dependencies {
+    compileOnly 'de.robv.android.xposed:api:82'
+    testRuntimeOnly 'de.robv.android.xposed:api:82'
     compileOnly files("${sdk}/platforms/android-35/android.jar")
     testImplementation files("${sdk}/platforms/android-35/android.jar")
     testImplementation 'junit:junit:4.13.2'

@@ -1,0 +1,7 @@
+# Signing keys and credentials must stay outside source control.
+*.jks
+*.keystore
+*.p12
+*.pfx
+signing.properties
+keystore.properties

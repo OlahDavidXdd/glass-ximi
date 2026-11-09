@@ -14,7 +14,7 @@ public final class PreviewActivity extends Activity {
         try(var shader=getAssets().open("shaders/qwea0_lens.agsl");var plate=getAssets().open("liquid_plate.png")){
             LiquidGlassDrawable.configure(new String(shader.readAllBytes(),StandardCharsets.UTF_8),BitmapFactory.decodeStream(plate),getSharedPreferences(GlassConfig.PREFS,0).getBoolean("white_symbols",true),getSharedPreferences(GlassConfig.PREFS,0).getBoolean("screen_match",true));
         }catch(Exception e){throw new IllegalStateException("Missing preview assets",e);}
-        setContentView(new PreviewView());
+        android.widget.ScrollView scroll=new android.widget.ScrollView(this);scroll.setFillViewport(true);scroll.addView(new PreviewView(),new android.widget.ScrollView.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));setContentView(scroll);
     }
     private final class PreviewView extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
@@ -22,7 +22,7 @@ public final class PreviewActivity extends Activity {
         private final ArrayList<String> labels=new ArrayList<>();
         private Bitmap background;
         private LiquidGlassDrawable dock,search;
-        private String status="Live shader preview in this app. Launcher wallpaper capture is a separate device test.";
+        private String status=LiquidGlassDrawable.isScreenMatching()?"Transparent icon material preview. Launcher native blur is a separate device check.":"Static-wallpaper lens preview. This is not a live launcher capture.";
         private int dragging=-1;private float lastX,lastY;
         private final GlassBackdrop backdrop=new GlassBackdrop(){
             public boolean isAvailable(){return background!=null;}
@@ -39,8 +39,9 @@ public final class PreviewActivity extends Activity {
             }catch(Exception e){throw new IllegalStateException(e);}
             dock=new LiquidGlassDrawable(this,null,backdrop,true,16,message->{},GlassSurface.DOCK);dock.setCallback(this);
             search=new LiquidGlassDrawable(this,null,backdrop,true,16,message->{},GlassSurface.SEARCH);search.setCallback(this);
-            setContentDescription("Liquid Glass preview. Drag an icon across the striped background to inspect refraction.");
+            setContentDescription("Icon material preview. Drag icons; scroll to see all examples. Launcher blur requires a separate device check.");
         }
+        @Override protected void onMeasure(int widthSpec,int heightSpec){setMeasuredDimension(MeasureSpec.getSize(widthSpec),Math.max(dp(720),MeasureSpec.getSize(heightSpec)));}
         private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
         @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){
             if(w<1||h<1)return;background=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(background);
@@ -55,18 +56,18 @@ public final class PreviewActivity extends Activity {
         @Override protected void onDraw(Canvas canvas){
             super.onDraw(canvas);if(background==null)return;canvas.drawBitmap(background,0,0,paint);
             paint.setColor(0xec181818);canvas.drawRoundRect(dp(12),dp(16),getWidth()-dp(12),dp(133),dp(18),dp(18),paint);
-            paint.setColor(Color.WHITE);paint.setTextSize(dp(24));canvas.drawText("devarix · Liquid Glass",dp(26),dp(61),paint);paint.setTextSize(dp(12));canvas.drawText("QWEA0 AGSL lens · Drag an icon to see refraction",dp(26),dp(94),paint);
+            paint.setColor(Color.WHITE);paint.setTextSize(dp(24));canvas.drawText("devarix · Liquid Glass",dp(26),dp(61),paint);paint.setTextSize(dp(12));canvas.drawText(LiquidGlassDrawable.isScreenMatching()?"Transparent material · Drag to inspect edges":"Static-wallpaper lens · Drag to inspect refraction",dp(26),dp(94),paint);
             dock.draw(canvas);search.draw(canvas);
             paint.setColor(Color.WHITE);paint.setTextSize(dp(13));paint.setTextAlign(Paint.Align.CENTER);canvas.drawText("⌕  Search",search.getBounds().exactCenterX(),search.getBounds().exactCenterY()+dp(5),paint);paint.setTextAlign(Paint.Align.LEFT);
             for(int i=0;i<icons.size();i++){LiquidGlassDrawable icon=icons.get(i);icon.draw(canvas);Rect b=icon.getBounds();paint.setColor(Color.WHITE);paint.setTextSize(dp(13));paint.setTextAlign(Paint.Align.CENTER);canvas.drawText(labels.get(i),b.exactCenterX(),b.bottom+dp(26),paint);paint.setTextAlign(Paint.Align.LEFT);}
-            paint.setColor(0xed181818);canvas.drawRoundRect(dp(12),getHeight()-dp(110),getWidth()-dp(12),getHeight()-dp(12),dp(18),dp(18),paint);paint.setColor(Color.WHITE);paint.setTextSize(dp(12));canvas.drawText("Actual GPU preview; no root needed for this screen.",dp(24),getHeight()-dp(76),paint);
+            paint.setColor(0xed181818);canvas.drawRoundRect(dp(12),getHeight()-dp(110),getWidth()-dp(12),getHeight()-dp(12),dp(18),dp(18),paint);paint.setColor(Color.WHITE);paint.setTextSize(dp(12));canvas.drawText("Icon preview only; launcher search blur is a separate check.",dp(24),getHeight()-dp(76),paint);
             String line=status.length()>77?status.substring(0,77)+"…":status;paint.setColor(0xffbbbbbb);paint.setTextSize(dp(10));canvas.drawText(line,dp(24),getHeight()-dp(46),paint);
         }
         @Override public boolean onTouchEvent(MotionEvent event){
             int action=event.getActionMasked();
-            if(action==MotionEvent.ACTION_DOWN){for(int i=icons.size()-1;i>=0;i--)if(icons.get(i).getBounds().contains((int)event.getX(),(int)event.getY())){dragging=i;lastX=event.getX();lastY=event.getY();icons.get(i).setState(new int[]{android.R.attr.state_pressed});invalidate();return true;}}
+            if(action==MotionEvent.ACTION_DOWN){for(int i=icons.size()-1;i>=0;i--)if(icons.get(i).getBounds().contains((int)event.getX(),(int)event.getY())){dragging=i;getParent().requestDisallowInterceptTouchEvent(true);lastX=event.getX();lastY=event.getY();icons.get(i).setState(new int[]{android.R.attr.state_pressed});invalidate();return true;}}
             if(action==MotionEvent.ACTION_MOVE&&dragging>=0){Rect b=new Rect(icons.get(dragging).getBounds());b.offset(Math.round(event.getX()-lastX),Math.round(event.getY()-lastY));b.offsetTo(Math.max(dp(6),Math.min(getWidth()-b.width()-dp(6),b.left)),Math.max(dp(145),Math.min(getHeight()-dp(145)-b.height(),b.top)));icons.get(dragging).setBounds(b);lastX=event.getX();lastY=event.getY();invalidate();return true;}
-            if((action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL)&&dragging>=0){icons.get(dragging).setState(new int[0]);dragging=-1;performClick();invalidate();return true;}
+            if((action==MotionEvent.ACTION_UP||action==MotionEvent.ACTION_CANCEL)&&dragging>=0){icons.get(dragging).setState(new int[0]);dragging=-1;getParent().requestDisallowInterceptTouchEvent(false);performClick();invalidate();return true;}
             return super.onTouchEvent(event);
         }
         @Override public boolean performClick(){super.performClick();return true;}

@@ -15,13 +15,15 @@ import de.robv.android.xposed.*;
 final class LauncherSurfaces {
     private static final String MARK="devarix_search_surface";
     private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout","com.miui.home.launcher.search.QuickSearchBarWidgetView","com.miui.home.launcher.SearchBarContainer","com.miui.home.launcher.pageindicators.CapsuleIndicator","com.miui.home.launcher.allapps.BaseAllAppsContainerView","com.miui.home.launcher.allapps.AllAppsCategoryContainer","com.miui.home.launcher.allapps.category.AllAppsCategoryListContainer","com.miui.home.launcher.allapps.AllAppsRecyclerView","com.miui.home.launcher.allapps.search.AllAppsSearchContainer"};
+    private final android.os.Handler main=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Set<View> compactViews=Collections.newSetFromMap(new WeakHashMap<>());
     private final Map<View,State> states=new WeakHashMap<>(),layers=new WeakHashMap<>();
     private final Map<View,WeakReference<View>> quickTargets=new WeakHashMap<>();
     private final Consumer<String> report,log;
     private boolean enabled,dock=true,search=true,drawer=true,blur;
     private int radius=24,revision;
     private GlassBackdrop backdrop;
-    private String lastCounts="",lastRenderStatus="";
+    private String lastCounts="",lastRenderStatus="",lastSearchStatus="";
     private static final class State {
         Drawable original;ColorStateList tint;PorterDuff.Mode mode;
         WeakReference<Drawable> ours=new WeakReference<>(null);
@@ -41,10 +43,17 @@ final class LauncherSurfaces {
                     if(view.isAttachedToWindow())watcher.onViewAttachedToWindow(view);
                 }});
                 for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged","updateContainerVisibility","resetAppsWhenLauncherModeChanged","updateLauncherSearchBarVisibility","refreshSearchBarEnable","refreshWithViewType","setBgBlurIfSupported","setBgBlurIfSupported$kx","setBgBlurIfSupportedForU","createBackgroundDrawable","onDarkModeChanged"}){
-                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View v=(View)p.thisObject;if(SearchSurfacePolicy.capsuleHost(v.getClass().getName())){Object body=XposedHelpers.getObjectField(v,"mIndicatorBackground");if(body instanceof View){State state=states.get(body);if(state!=null)state.nativeBlurManaged=false;}}apply(v);}});
+                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){styleChanged((View)p.thisObject);}});
                 }
             }catch(Throwable e){log.accept("Surface hook error "+name+": "+e);}
         }
+    }
+    private void styleChanged(View view){
+        if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){main.post(()->styleChanged(view));return;}
+        if(SearchSurfacePolicy.capsuleHost(view.getClass().getName())){
+            Object body=XposedHelpers.getObjectField(view,"mIndicatorBackground");if(body instanceof View){State state=states.get(body);if(state!=null)state.nativeBlurManaged=false;}
+        }
+        apply(view);
     }
     private final class Watcher implements View.OnLayoutChangeListener,View.OnAttachStateChangeListener,ViewTreeObserver.OnPreDrawListener {
         private final WeakReference<View> owner;
@@ -68,10 +77,11 @@ final class LauncherSurfaces {
         }
     }
     void configure(boolean enabled,boolean dock,boolean search,boolean drawer,boolean blur,int radius,GlassBackdrop backdrop){
-        if(this.enabled!=enabled||this.dock!=dock||this.search!=search||this.drawer!=drawer||this.blur!=blur||this.radius!=radius)revision++;
+        revision++; // GlassHook already deduplicates the complete settings snapshot, including material mode.
         this.enabled=enabled;this.dock=dock;this.search=search;this.drawer=drawer;this.blur=blur;this.radius=radius;this.backdrop=backdrop;
         for(View view:new ArrayList<>(states.keySet()))if(view!=null)apply(view);
         for(View view:new ArrayList<>(layers.keySet()))if(view!=null){State state=layers.get(view);if(state!=null&&(!enabled||(state.kind==GlassSurface.SEARCH?!search:!drawer)))restore(view,state);}
+        if(!enabled||!search)lastSearchStatus="Disabled";
         counts();
     }
     private static int kind(View view){
@@ -79,6 +89,7 @@ final class LauncherSurfaces {
         return Boolean.TRUE.equals(XposedHelpers.getAdditionalInstanceField(view,MARK))?GlassSurface.SEARCH:GlassSurface.NONE;
     }
     void apply(View view){
+        if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){main.post(()->apply(view));return;}
         try{
             if(SearchSurfacePolicy.capsuleHost(view.getClass().getName())){capsuleSearch(view);return;}
             if(SearchSurfacePolicy.quickHost(view.getClass().getName())){quickSearch(view);return;}
@@ -93,7 +104,7 @@ final class LauncherSurfaces {
         if(state==null){state=new State();state.kind=kind;states.put(view,state);}
         if(!state.applied||state.revision!=revision||view.getBackground()!=state.ours.get()){
             if(!state.applied||view.getBackground()!=state.ours.get()){state.original=view.getBackground();state.tint=view.getBackgroundTintList();state.mode=view.getBackgroundTintMode();}
-            boolean compact=kind==GlassSurface.SEARCH&&view.getParent() instanceof View&&SearchSurfacePolicy.capsuleHost(view.getParent().getClass().getName());
+            boolean compact=kind==GlassSurface.SEARCH&&compactViews.contains(view);
             Drawable glass=compact?new SearchGlassDrawable(view.getResources().getDisplayMetrics().density):new LiquidGlassDrawable(view,null,backdrop,blur,radius,this::renderStatus,kind);
             int inset=kind==GlassSurface.DOCK?Math.round(8*view.getResources().getDisplayMetrics().density):0;
             Drawable ours=inset==0?glass:new InsetDrawable(glass,inset,Math.round(inset*.6f),inset,Math.round(inset*.6f));
@@ -111,13 +122,13 @@ final class LauncherSurfaces {
     private void capsuleSearch(View host){
         Object value=XposedHelpers.getObjectField(host,"mIndicatorBackground");
         if(!(value instanceof ImageView))return;
-        ImageView body=(ImageView)value;
+        ImageView body=(ImageView)value;compactViews.add(body);
         XposedHelpers.setAdditionalInstanceField(body,MARK,true);
         State state=states.get(body);
         if(!enabled||!search){if(state!=null)restore(body,state);return;}
         applySurface(body,GlassSurface.SEARCH);state=states.get(body);
         if(body.getDrawable()!=null){state.indicatorImage=body.getDrawable();state.indicator=new WeakReference<>(body);body.setImageDrawable(null);}
-        if(state.searchBlur==null)state.searchBlur=new SearchBarBlur(body,host,(v,method,args)->XposedHelpers.callMethod(v,method,args),log);
+        if(state.searchBlur==null)state.searchBlur=new SearchBarBlur(body,host,(v,method,args)->XposedHelpers.callMethod(v,method,args),message->{log.accept(message);lastSearchStatus=message;counts();});
         state.searchBlur.update(blur,Math.round(radius*body.getResources().getDisplayMetrics().density),!state.nativeBlurManaged);
         state.nativeBlurManaged=true;
         if(host.getBackground()!=null)clearLayer(host,GlassSurface.SEARCH);
@@ -178,7 +189,7 @@ log.accept("Surface restored: "+view.getClass().getName());counts();
         for(var entry:states.entrySet())if(entry.getKey()!=null&&entry.getValue().applied&&entry.getKey().isShown()){
             if(entry.getValue().kind==GlassSurface.DOCK)docks++;else if(entry.getValue().kind==GlassSurface.DRAWER)drawers++;else searches++;
         }
-        String value="Glass surfaces: "+docks+" visible dock, "+searches+" visible search bar, "+drawers+" glass app drawer.";
+        String value="Glass surfaces: "+docks+" visible dock, "+searches+" visible search bar, "+drawers+" glass app drawer."+(lastSearchStatus.isEmpty()?"":"\nCompact search: "+lastSearchStatus);
         if(!value.equals(lastCounts)){lastCounts=value;report.accept(value);}
     }
 }

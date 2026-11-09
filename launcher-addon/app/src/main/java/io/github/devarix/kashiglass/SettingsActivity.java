@@ -23,7 +23,7 @@ public final class SettingsActivity extends Activity {
         DebugLog.event(this,"APP_OPEN",BuildConfig.VERSION_NAME);
         ScrollView scroll=new ScrollView(this);LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int pad=dp(24);page.setPadding(pad,pad,pad,pad);scroll.addView(page);setContentView(scroll);
         text(page,"devarix Glass",30,Color.WHITE);text(page,"For Kashi launcher · HyperOS 3",16,0xffcccccc);
-        text(page,"1. LSPosed → Modules → devarix Glass → enable and select System launcher (com.miui.home).\n2. Tap Enable Liquid Glass below.\n3. Tap Restart launcher and allow root, then open your home screen.\nThe icon switch alone cannot enable the LSPosed module.",15,0xffcccccc);
+        text(page,"1. LSPosed → Modules → devarix Glass → enable and select System launcher (com.miui.home).\n2. Tap Enable Liquid Glass below.\n3. Tap Restart launcher, then open your home screen. A supporting hook restarts itself; root is only a fallback.\nThe icon switch alone cannot enable the LSPosed module.",15,0xffcccccc);
         text(page,"Material",18,Color.WHITE);
         Spinner material=new Spinner(this);material.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Liquid Glass · screen / wallpaper","Frosted Glass · previous style"}));material.setSelection("frosted".equals(GlassConfig.style(prefs.getString("style","liquid")))?1:0);page.addView(material);
         material.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){} public void onItemSelected(AdapterView<?> p,android.view.View v,int position,long id){String style=position==0?"liquid":"frosted";if(!style.equals(GlassConfig.style(prefs.getString("style","liquid")))){prefs.edit().putString("style",style).commit();changed();}}});
@@ -82,7 +82,7 @@ public final class SettingsActivity extends Activity {
         long connected=prefs.getLong("connected_at",0);
         String connection=connected==0?"Launcher has not connected. Check LSPosed scope and restart launcher.":"Last launcher settings read: "+android.text.format.DateFormat.format("HH:mm:ss",connected);
         if(checkStarted>0&&connected<checkStarted)connection=checking?"Checking… Open the home screen now.":"No fresh launcher response. Check LSPosed scope, unlock the phone, and restart launcher.";
-        String hook=HookVersion.status(BuildConfig.VERSION_CODE,BuildConfig.VERSION_NAME,prefs.getInt("hook_code",0),prefs.getString("hook_version","unreported"),connected);
+        String hook=HookVersion.status(BuildConfig.VERSION_CODE,BuildConfig.VERSION_NAME,prefs.getInt("hook_code",0),prefs.getString("hook_version","unreported"),connected,checkStarted);
         status.setText(hook+"\n"+connection+"\n"+prefs.getString("bindings","No icon binding counts received yet. Open the home screen or app drawer.")+"\n"+prefs.getString("surfaces","Waiting for dock/search surface bindings.")+"\n"+prefs.getString("widgets","Waiting for clock/weather widgets.")+"\nLogged glass animation hand-offs: "+prefs.getInt("animation_replacements",0)+"\n"+prefs.getString("last_animation","No native animation inputs logged yet.")+"\n"+prefs.getString("status","Waiting for launcher."));
     }
     private void restartLauncher(Button button){
@@ -147,6 +147,6 @@ public final class SettingsActivity extends Activity {
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private TextView text(LinearLayout page,String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setPadding(0,dp(10),0,dp(12));page.addView(t);return t;}
     private Switch toggle(LinearLayout page,String title,String subtitle,String key){Switch s=new Switch(this);s.setText(title);s.setTextColor(Color.WHITE);s.setTextSize(18);s.setPadding(0,dp(18),0,dp(8));s.setChecked(prefs.getBoolean(key,("debug_logs".equals(key)||"automatic".equals(key)||"dock_glass".equals(key)||"search_glass".equals(key)||"drawer_glass".equals(key)||"widget_glass".equals(key)||"white_symbols".equals(key)||"screen_match".equals(key))));page.addView(s);text(page,subtitle,14,0xffb8b8b8);s.setOnCheckedChangeListener((button,checked)->{prefs.edit().putBoolean(key,checked).commit();changed();});return s;}
-    @Override protected void onResume(){super.onResume();updateStatus();getContentResolver().notifyChange(GlassProvider.SETTINGS,null);}
+    @Override protected void onResume(){super.onResume();checkStarted=System.currentTimeMillis();checking=true;main.removeCallbacks(checkResult);main.postDelayed(checkResult,4000);updateStatus();getContentResolver().notifyChange(GlassProvider.SETTINGS,null);}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);getContentResolver().unregisterContentObserver(observer);super.onDestroy();}
 }

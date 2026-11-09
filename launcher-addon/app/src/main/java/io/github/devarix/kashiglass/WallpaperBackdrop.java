@@ -49,7 +49,7 @@ final class WallpaperBackdrop implements GlassBackdrop {
         loader.execute(()->{
             Bitmap result=null;String problem=null;
             try{result=readWallpaper(allowRoot);if(result==null)problem="Static wallpaper could not be decoded.";}
-            catch(Exception e){problem=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
+            catch(Exception|OutOfMemoryError e){problem=e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
             Bitmap image=result;String message=problem;
             main.post(()->{
                 loading=false;
@@ -77,8 +77,11 @@ final class WallpaperBackdrop implements GlassBackdrop {
     }
     private static int sample(int w,int h){int n=1;while(Math.max(w,h)/n>3072)n*=2;return n;}
     private Bitmap readRootWallpaper() throws Exception {
+        if(!active||!rootAllowed)throw new IOException("Root wallpaper capture is disabled.");
         int user=android.os.Process.myUid()/100000;
-        Process p=new ProcessBuilder("su","-c","cat "+GlassConfig.wallpaperPath(user)).start();process=p;p.getOutputStream().close();
+        Process p=new ProcessBuilder("su","-c","cat "+GlassConfig.wallpaperPath(user)).start();process=p;
+        if(!active||!rootAllowed){p.destroyForcibly();process=null;throw new IOException("Root wallpaper capture was disabled while starting.");}
+        p.getOutputStream().close();
         CompletableFuture<byte[]> bytes=new CompletableFuture<>();
         Thread reader=new Thread(()->{
             try(InputStream in=p.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
@@ -92,7 +95,7 @@ final class WallpaperBackdrop implements GlassBackdrop {
             if(p.exitValue()!=0)throw new IOException("Root wallpaper access was denied or the current user's wallpaper file is unavailable.");
             byte[] data=bytes.get(3,TimeUnit.SECONDS);BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(data,0,data.length,o);o.inSampleSize=sample(o.outWidth,o.outHeight);o.inJustDecodeBounds=false;
             return BitmapFactory.decodeByteArray(data,0,data.length,o);
-        }finally{p.destroy();try{p.getErrorStream().close();}catch(IOException ignored){}process=null;}
+        }finally{if(p.isAlive())p.destroyForcibly();try{p.getErrorStream().close();}catch(IOException ignored){}process=null;}
     }
     private void cancelProcess(){Process p=process;if(p!=null)p.destroyForcibly();}
     @Override public boolean draw(Canvas canvas,View owner,Rect bounds,int margin){return drawInternal(canvas,owner,bounds,margin,true);}
