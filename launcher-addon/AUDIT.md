@@ -1,3 +1,9 @@
+# 0.21.0: shared renderer for controller controls
+
+The separate OpticalGlass painter is removed. Capsule buttons, navigation and switch/slider surfaces layer a neutral dark body with production LiquidGlassDrawable in explicit live-screen mode (blur disabled on the black controller canvas). No borrowed wallpaper image, custom wide glint band, renderer/shader alteration or global material reconfiguration is introduced. Native preference state, touch handlers, ripple feedback and accessibility remain. Controller glass is subtle on a flat black backdrop; runtime screenshots do not verify firmware backdrop sampling.
+
+The Weather logs show source ownership at the sampled return instants and unnamed animation frames retained under existing content-preservation rules. No widget/animation behavior change is claimed from these observations. Existing 77 unit and 216 Android runtime cases, lint, asset and signature checks cover this build.
+
 # 0.20.0: controller-only glass styling
 
 Pure-black controller background; native custom Canvas glass surfaces for cards/options/buttons, state-list switch thumb/track, slider and floating bottom navigation. No launcher shader, PNG assets, target resolution, widget engine hooks or animation code changes. Existing 77 unit and 216 runtime cases retained, including real native UI screenshot rendering and preference/restart/tab behavior.

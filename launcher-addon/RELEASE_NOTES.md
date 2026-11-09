@@ -1,5 +1,15 @@
 Developer: **devarix**
 
+## 0.21.0 — Shared icon material and restrained black layout
+
+The controller replaces its separate OpticalGlass highlight painter with the actual `LiquidGlassDrawable` used by launcher icons. Controller controls use its explicit screen-matching material/rim path, with a neutral dark body, capsule geometry and no wallpaper tile. Blur is off for these plain-black controller surfaces; there is no claim of visible scene refraction or Xiaomi compositor sampling inside the controller. The launcher shader, icon artwork and launcher material settings are unchanged.
+
+The layout follows the supplied reference more closely: plain black canvas, dark grouped settings rather than a glass tile behind every row, compact capsule actions, native switches with readable thumb state, and one floating navigation capsule with vector icons and a selected pill. The large overview hero and broad painted reflection bands are removed. The slider retains native progress/drag behavior with a thin glass track.
+
+The supplied Weather trace shows glass-owned source fields/slots at completion and next-frame sampling. Animated `assets/weather2/.../pic_*.webp` layers remain untouched because these unnamed frames have not been established as safely removable decoration. These logs do not prove that an animation or widget blur issue is fixed; this release changes controller presentation only.
+
+Verification: 77 unit tests, 216 Android runtime cases across API 33/35, lint, assets and signature validation. Actual native controller screenshots are attached. Refresh connection after installing/rebooting to confirm loaded hook **0.21.0-test**. See [signing/update limits](SIGNING.md).
+
 ## 0.20.0 — Black liquid-glass controller
 
 The controller uses a pure black canvas with neutral translucent glass cards, individual option rows, reflective switch tracks/thumbs, glass buttons, blur-strength control and a floating glass bottom navigation pill. Checked and selected controls have stronger highlights; native switch behavior, ripples, labels, preference persistence and accessibility remain. This is controller glass styling, not a claim of compositor blur or optical refraction against its plain black background.
