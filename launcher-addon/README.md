@@ -47,7 +47,7 @@ The small home **Search** capsule is `pageindicators.CapsuleIndicator`, with an 
 
 Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. Native MAML clock/weather support is added in 0.14.0: recognized roots get the same material inside their native render pass, with large decorative background images/rectangles suppressed. Unknown or flattened images remain intact. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
 
-Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.15.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
+Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.16.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
 
 ## Screen matching and native source visibility (0.8.0)
 

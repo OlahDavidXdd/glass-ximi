@@ -22,6 +22,7 @@ final class LauncherWidgets {
     private final Map<View,Host> hosts=new WeakHashMap<>();
     private final Consumer<String> log,report;
     private final MamlWidgetGlass maml;
+    private final SearchBarBlur.Calls underlayCalls;
     private boolean enabled,blur,applying;
     private int strength=24,revision;
     private GlassBackdrop backdrop;
@@ -29,9 +30,10 @@ final class LauncherWidgets {
     private static final class Host {String diagnostic="";boolean supported,watching;WeakReference<View> root=new WeakReference<>(null);}
     private static final class Change {
         WeakReference<View> host;Drawable background,image;ColorStateList tint;PorterDuff.Mode mode;
-        WeakReference<Drawable> ours=new WeakReference<>(null);boolean imageCleared,applied,glass;int revision;
+        SearchBarBlur underlay;WeakReference<Drawable> ours=new WeakReference<>(null);boolean imageCleared,applied,glass;int revision;
     }
-    LauncherWidgets(Consumer<String> report,Consumer<String> log){this.report=report;this.log=log;this.maml=new MamlWidgetGlass(log,message->counts());}
+    LauncherWidgets(Consumer<String> report,Consumer<String> log){this(report,log,(view,method,args)->XposedHelpers.callMethod(view,method,args));}
+    LauncherWidgets(Consumer<String> report,Consumer<String> log,SearchBarBlur.Calls calls){this.report=report;this.log=log;this.underlayCalls=calls;this.maml=new MamlWidgetGlass(log,message->counts(),calls);}
     void install(ClassLoader loader){
         Class<?> mamlHost=XposedHelpers.findClassIfExists("com.miui.home.launcher.maml.MaMlHostView",loader);
         log.accept("MAML widget host found="+(mamlHost!=null));
@@ -124,6 +126,7 @@ final class LauncherWidgets {
     }
     private void replace(View host,View view,boolean glass,boolean clearImage){
         Change change=changes.get(view);if(change==null){change=new Change();change.host=new WeakReference<>(host);changes.put(view,change);}
+        if(change.underlay!=null)change.underlay.useSharedMaterial(false);
         if(change.imageCleared&&!clearImage&&view instanceof ImageView){
             if(((ImageView)view).getDrawable()==null)((ImageView)view).setImageDrawable(change.image);
             change.imageCleared=false;change.image=null;
@@ -131,7 +134,9 @@ final class LauncherWidgets {
         if(!change.applied||view.getBackground()!=change.ours.get()){
             change.background=view.getBackground();change.tint=view.getBackgroundTintList();change.mode=view.getBackgroundTintMode();
         }else if(change.revision==revision&&change.glass==glass&&(!clearImage||((ImageView)view).getDrawable()==null))return;
-        Drawable ours=glass?new LiquidGlassDrawable(view,null,backdrop,blur,strength,this::renderStatus,GlassSurface.WIDGET):new ColorDrawable(Color.TRANSPARENT);
+        if(change.underlay==null)change.underlay=new SearchBarBlur(view,glass?host:view,underlayCalls,log,"WIDGET");
+        change.underlay.useSharedMaterial(true);
+        Drawable ours=glass?SharedGlassMaterial.create(view,backdrop,blur,strength,this::renderStatus,GlassSurface.WIDGET):new ColorDrawable(Color.TRANSPARENT);
         change.ours=new WeakReference<>(ours);change.applied=true;change.glass=glass;change.revision=revision;
         background(view,ours);view.setBackgroundTintList(null);
         if(clearImage){ImageView image=(ImageView)view;if(image.getDrawable()!=null){change.image=image.getDrawable();change.imageCleared=true;image.setImageDrawable(null);}}
@@ -143,6 +148,7 @@ final class LauncherWidgets {
     private void restoreHost(View host){for(View view:new ArrayList<>(changes.keySet())){Change change=changes.get(view);if(change!=null&&change.host.get()==host)restore(view);}}
     private void restore(View view){
         Change change=changes.remove(view);if(view==null||change==null||!change.applied)return;
+        if(change.underlay!=null)change.underlay.restore();
         if(view.getBackground()==change.ours.get()){background(view,change.background);view.setBackgroundTintList(change.tint);view.setBackgroundTintMode(change.mode);}
         if(change.imageCleared&&view instanceof ImageView&&((ImageView)view).getDrawable()==null)((ImageView)view).setImageDrawable(change.image);
     }

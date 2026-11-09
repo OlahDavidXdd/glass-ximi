@@ -1,0 +1,38 @@
+{
+  "scope": "Read-only Kashi V7.5 bytecode metadata review; not device hook execution",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "native_methods": {
+    "getIconDrawable": {
+      "descriptor": "()Landroid/graphics/drawable/Drawable;",
+      "relevant_instructions": [
+        {
+          "op": "iget-object",
+          "target": "v0, v0, Lcom/miui/home/launcher/ShortcutIcon;->mIconDrawable Landroid/graphics/drawable/Drawable;"
+        }
+      ]
+    },
+    "onDraw": {
+      "descriptor": "(Landroid/graphics/Canvas;)V",
+      "relevant_instructions": [
+        {
+          "op": "invoke-super",
+          "target": "v8, v9, Landroid/widget/TextView;->onDraw(Landroid/graphics/Canvas;)V"
+        }
+      ]
+    },
+    "applyCompoundDrawables": {
+      "descriptor": "(Landroid/graphics/drawable/Drawable;)V",
+      "relevant_instructions": [
+        {
+          "op": "invoke-virtual",
+          "target": "v3, v0, v4, v0, v0, Landroid/widget/TextView;->setCompoundDrawables(Landroid/graphics/drawable/Drawable; Landroid/graphics/drawable/Drawable; Landroid/graphics/drawable/Drawable; Landroid/graphics/drawable/Drawable;)V"
+        }
+      ]
+    }
+  },
+  "framework_guards": [
+    "TextView.setCompoundDrawables(Drawable,Drawable,Drawable,Drawable)",
+    "TextView.setCompoundDrawablesRelative(Drawable,Drawable,Drawable,Drawable)",
+    "TextView.onDraw(Canvas)"
+  ]
+}

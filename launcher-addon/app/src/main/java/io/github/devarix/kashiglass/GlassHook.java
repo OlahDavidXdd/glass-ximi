@@ -94,9 +94,36 @@ public final class GlassHook implements IXposedHookLoadPackage {
             }
             @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()&&isIcon(p.thisObject))apply((View)p.thisObject);}
         });
+        for(String method:new String[]{"setCompoundDrawables","setCompoundDrawablesRelative"}){
+            XposedHelpers.findAndHookMethod(android.widget.TextView.class,method,Drawable.class,Drawable.class,Drawable.class,Drawable.class,new XC_MethodHook(){
+                @Override protected void beforeHookedMethod(MethodHookParam p){
+                    if(!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
+                    View view=(View)p.thisObject;Drawable incoming=(Drawable)p.args[1];if(incoming==null)return;
+                    Object mask=field(view,"mTransparentDrawable");if(incoming==mask)return;
+                    State state=state(view);apply(view);Drawable owned=getIconDrawable(view);
+                    if(!state.binding.owns(owned))return;
+                    p.args[1]=SourceIconReturn.replacement(incoming,owned,mask instanceof Drawable?(Drawable)mask:null,state.visibility.hidden);
+                    if(p.args[1]!=incoming)debug("SOURCE_RETURN","Protected source drawing slot: "+method+" key="+state.packageName+" hidden="+state.visibility.hidden+" alpha="+state.visibility.alpha);
+                }
+            });
+        }
         Class<?> shortcutClass=XposedHelpers.findClassIfExists("com.miui.home.launcher.ShortcutIcon",param.classLoader);
         debug("HOOK_TARGET","ShortcutIcon found="+(shortcutClass!=null));
         if(shortcutClass!=null){
+            XposedBridge.hookAllMethods(shortcutClass,"getIconDrawable",new XC_MethodHook(){
+                @Override protected void afterHookedMethod(MethodHookParam p){
+                    if(!enabled||INTERNAL.get()||p.getResult()==null||Looper.myLooper()!=Looper.getMainLooper())return;
+                    View view=(View)p.thisObject;apply(view);State state=state(view);Drawable owned=getIconDrawable(view);
+                    if(state.binding.owns(owned))p.setResult(owned);
+                }
+            });
+            XposedHelpers.findAndHookMethod(android.widget.TextView.class,"onDraw",Canvas.class,new XC_MethodHook(){
+                @Override protected void beforeHookedMethod(MethodHookParam p){
+                    if(!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
+                    View view=(View)p.thisObject;State state=STATES.get(view);
+                    if(state!=null&&state.applied)verifyLiveIcon(view);else apply(view);
+                }
+            });
             XposedHelpers.findAndHookMethod(shortcutClass,"setIconDrawable",Drawable.class,Bitmap.class,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
                     if(!enabled||INTERNAL.get()||Looper.myLooper()!=Looper.getMainLooper())return;
@@ -173,7 +200,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         debug("HOOK_READY","Icon, activity and wallpaper hooks installed");
         }catch(Throwable e){error("HOOK_INSTALL_ERROR",e);}
     }
-    private static Drawable getIconDrawable(View view){return view instanceof ImageView?((ImageView)view).getDrawable():(Drawable)call(view,"getIconDrawable");}
+    private static Drawable getIconDrawable(View view){Object value=view instanceof ImageView?((ImageView)view).getDrawable():field(view,"mIconDrawable");return value instanceof Drawable?(Drawable)value:null;}
     private static void setIconDrawable(View view,Drawable drawable){
         if(view instanceof ImageView)((ImageView)view).setImageDrawable(drawable);
         else {
@@ -422,9 +449,8 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static void repairDrawingSlot(View view,State state){
         if(!(view instanceof android.widget.TextView)||view instanceof ImageView)return;
         Drawable owned=getIconDrawable(view);if(!state.binding.owns(owned))return;
-        Drawable current=((android.widget.TextView)view).getCompoundDrawables()[1];Object mask=field(view,"mTransparentDrawable");
-        Drawable desired=LiveIconBinding.drawingSlot(owned,current,mask instanceof Drawable?(Drawable)mask:null,state.visibility.hidden);
-        if(desired!=current&&desired!=null)XposedHelpers.callMethod(view,"applyCompoundDrawables",desired);
+        Object mask=field(view,"mTransparentDrawable");
+        SourceIconReturn.repair((android.widget.TextView)view,owned,mask instanceof Drawable?(Drawable)mask:null,state.visibility.hidden);
     }
     private static void load(String pkg,View view){
         String requestedStyle=style,key=assetKey(pkg);

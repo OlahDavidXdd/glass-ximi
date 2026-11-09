@@ -89,7 +89,7 @@ public class SearchBarRuntimeTest {
     @Test public void searchDockAndDrawerUseTheSameMaterialInBothModes(){
         for(boolean screenMatching:new boolean[]{true,false}){
             LiquidGlassDrawable.configure(null,null,true,screenMatching);Integer reference=null;
-            for(int kind:new int[]{GlassSurface.DOCK,GlassSurface.SEARCH,GlassSurface.DRAWER}){
+            for(int kind:new int[]{GlassSurface.DOCK,GlassSurface.SEARCH,GlassSurface.DRAWER,GlassSurface.WIDGET}){
                 android.graphics.drawable.Drawable material=SharedGlassMaterial.create(body,noCapture(),false,24,messages::add,kind);assertTrue(material instanceof LiquidGlassDrawable);material.setBounds(0,0,160,48);
                 Bitmap pixels=Bitmap.createBitmap(160,48,Bitmap.Config.ARGB_8888);material.draw(new Canvas(pixels));int center=pixels.getPixel(80,24);
                 assertTrue("opaque search fill",Color.alpha(center)<100);if(reference==null)reference=center;else assertEquals((int)reference,center);

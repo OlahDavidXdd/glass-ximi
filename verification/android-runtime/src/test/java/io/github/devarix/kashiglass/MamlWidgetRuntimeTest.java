@@ -40,6 +40,17 @@ public class MamlWidgetRuntimeTest {
         Info unsupported=new Info();unsupported.appPackage="calendar";unsupported.resPath="/calendar";unsupported.title="Calendar";
         nativeHost.info=unsupported;Root other=new Root();nativeHost.root=other;detected.apply(nativeHost);assertTrue(detected.summary().startsWith("0 "));assertFalse(detected.skipDecoration(new ImageScreenElement(root)));
     }
+    @Test public void widgetUsesTheApprovedSearchUnderlayResetAndRestoresOnDisable(){
+        java.util.Map<String,Integer> modes=new java.util.HashMap<>();modes.put("MiBackgroundBlurMode",2);modes.put("MiViewBlurMode",3);final java.util.List<String> messages=new java.util.ArrayList<>();
+        MamlWidgetGlass material=new MamlWidgetGlass(messages::add,s->{},(v,method,args)->{
+            if(method.startsWith("get"))return modes.getOrDefault(method.substring(3),0);
+            if(method.startsWith("set"))modes.put(method.substring(3),((Number)args[0]).intValue());return null;
+        });
+        org.robolectric.android.controller.ActivityController<android.app.Activity> controller=Robolectric.buildActivity(android.app.Activity.class).setup();controller.get().setContentView(view);
+        material.configure(true,false,24,new GlassBackdrop(){public boolean isAvailable(){return false;}public boolean draw(Canvas c,View v,Rect r,int margin){return false;}});material.bind(view,root);
+        assertEquals(0,(int)modes.get("MiBackgroundBlurMode"));assertEquals(0,(int)modes.get("MiViewBlurMode"));assertTrue(messages.stream().anyMatch(m->m.startsWith("WIDGET_MATERIAL")));
+        material.configure(false,false,24,null);assertEquals(2,(int)modes.get("MiBackgroundBlurMode"));assertEquals(3,(int)modes.get("MiViewBlurMode"));controller.pause().stop().destroy();
+    }
     @Test public void glassRendersInsideOnlyTheRegisteredRootBeforeBackgroundRemoval(){
         ImageScreenElement bg=new ImageScreenElement(root);assertFalse(glass.skipDecoration(bg));
         assertFalse(glass.drawBackground(new ElementGroup(root),canvas));assertTrue(glass.drawBackground(group,canvas));assertTrue(glass.skipDecoration(bg));

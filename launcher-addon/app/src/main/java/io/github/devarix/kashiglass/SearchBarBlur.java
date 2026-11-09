@@ -11,12 +11,14 @@ final class SearchBarBlur {
     private final WeakReference<View> body,host;
     private final Calls calls;
     private final Consumer<String> log;
+    private final String role;
     private ViewOutlineProvider outline;
     private boolean clip,saved,active,failed,shared;
     private Integer bodyBackground,bodyView,bodyRadius,hostBackground,hostView;
     private int width=-1,height=-1,radius=-1;
     private String last="";
-    SearchBarBlur(View body,View host,Calls calls,Consumer<String> log){this.body=new WeakReference<>(body);this.host=new WeakReference<>(host);this.calls=calls;this.log=log;}
+    SearchBarBlur(View body,View host,Calls calls,Consumer<String> log){this(body,host,calls,log,"SEARCH");}
+    SearchBarBlur(View body,View host,Calls calls,Consumer<String> log,String role){this.body=new WeakReference<>(body);this.host=new WeakReference<>(host);this.calls=calls;this.log=log;this.role=role;}
     void update(boolean enabled,int pixels,boolean force){
         View view=body.get(),container=host.get();if(view==null||container==null)return;
         if(!enabled){restore();return;}
@@ -38,14 +40,14 @@ final class SearchBarBlur {
     // The common renderer owns its own backdrop node. Do not stack a second native blur plane.
     void useSharedMaterial(boolean force){
         View view=body.get(),container=host.get();if(view==null||container==null)return;
-        if(!view.isAttachedToWindow()||view.getWidth()<=0||view.getHeight()<=0){status("SEARCH_MATERIAL pending attachment/layout");return;}
+        if(!view.isAttachedToWindow()||view.getWidth()<=0||view.getHeight()<=0){status(role+"_MATERIAL pending attachment/layout");return;}
         if(shared&&!force)return;
         capture(view,container);shared=true;
         try{
             require(view,"setMiBackgroundBlurMode",0);require(view,"setMiViewBlurMode",0);optional(view,"clearMiBackgroundBlendColor");
             require(container,"setMiBackgroundBlurMode",0);require(container,"setMiViewBlurMode",0);optional(container,"clearMiBackgroundBlendColor");
-            status("SEARCH_MATERIAL shared LiquidGlassDrawable, same pipeline as dock/drawer; native underlay disabled. Device rendering needs verification.");
-        }catch(Throwable error){status("SEARCH_MATERIAL shared renderer installed; native underlay reset unavailable: "+error.getClass().getSimpleName()+" "+error.getMessage());}
+            status(role+"_MATERIAL shared LiquidGlassDrawable, same pipeline as dock/drawer; native underlay disabled. Device rendering needs verification.");
+        }catch(Throwable error){status(role+"_MATERIAL shared renderer installed; native underlay reset unavailable: "+error.getClass().getSimpleName()+" "+error.getMessage());}
         view.invalidate();
     }
     private void capture(View view,View container){

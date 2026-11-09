@@ -1,3 +1,9 @@
+# 0.16.0: widget material and source-return guards
+
+Both widget paths construct their material via SharedGlassMaterial and reset native underlays with the approved search helper, preserving the renderer parameters. Native underlay modes are restored on disable/detach/root replacement. Pending Android widget resets activate after attachment and deduplicate unchanged reapplication. Existing separation rules continue to retain flattened/unknown live content.
+
+Native direct compound-drawable restores could reach TextView outside the private ShortcutIcon setter/pre-draw coverage. The module now intercepts source-icon compound assignments, verifies the backing field at native getter access and checks source integrity immediately before TextView painting. Native clear/mask/hide/alpha behavior is retained. Host tests execute production SourceIconReturn/LiveIconBinding against real TextView/Bitmap objects, including repeated native restore sequences. Actual Xposed dispatch and firmware exit animation are not executed by these tests.
+
 # 0.15.0: common search material
 
 The compact search branch used SearchGlassDrawable plus SearchBarBlur's attached native plane, unlike dock/drawer. Search is now constructed by SharedGlassMaterial using the existing LiquidGlassDrawable, with capsule outline geometry. The additional body/host native planes are disabled while this material is installed, native search images are removed, and reintroduced background tint is cleared. Disable restores saved native modes and decoration; no search text or tap handlers are replaced.
