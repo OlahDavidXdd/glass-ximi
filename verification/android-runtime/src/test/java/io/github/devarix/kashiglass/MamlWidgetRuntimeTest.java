@@ -56,6 +56,18 @@ public class MamlWidgetRuntimeTest {
         ClockGadget parent=new ClockGadget(view.getContext());com.miui.maml.MiAdvancedView legacy=new com.miui.maml.MiAdvancedView(view.getContext());legacy.root=root;parent.addView(legacy);
         MamlWidgetGlass detected=new MamlWidgetGlass(s->{},s->{});detected.configure(true,true,24,new GlassBackdrop(){public boolean isAvailable(){return false;}public boolean draw(Canvas c,View v,Rect r,int margin){return false;}});detected.apply(legacy);assertTrue(detected.summary().startsWith("1 "));assertTrue(detected.drawBackground(group,canvas));
     }
+    @Test public void awesomeClockWrapperUsesItsActualRenderChildAcrossEngineNamespace(){
+        com.miui.home.launcher.gadget.AwesomeClock wrapper=new com.miui.home.launcher.gadget.AwesomeClock(view.getContext());miui.maml.MiAdvancedView child=new miui.maml.MiAdvancedView(view.getContext());child.mRoot=root;wrapper.mRoot=root;wrapper.mAwesomeView=child;wrapper.addView(child);
+        glass.apply(wrapper);assertTrue(glass.summary().startsWith("1 "));assertTrue(glass.drawBackground(group,canvas));
+    }
+    @Test public void wrapperAndChildDoNotRecreateTheSameRootBindingEveryFrame(){
+        com.miui.home.launcher.gadget.AwesomeClock wrapper=new com.miui.home.launcher.gadget.AwesomeClock(view.getContext());miui.maml.MiAdvancedView child=new miui.maml.MiAdvancedView(view.getContext());child.mRoot=root;wrapper.mRoot=root;wrapper.mAwesomeView=child;wrapper.addView(child);
+        glass.apply(wrapper);java.util.Map<?,?> roots=org.robolectric.util.ReflectionHelpers.getField(glass,"roots");Object first=roots.get(root);
+        for(int i=0;i<100;i++){glass.apply(child);glass.apply(wrapper);assertSame(first,roots.get(root));}assertEquals(1,roots.size());glass.detach(wrapper);assertTrue(roots.isEmpty());
+    }
+    @Test public void detachedFormerOwnerCannotRemoveTheNewClockOwner(){
+        com.miui.home.launcher.gadget.AwesomeClock wrapper=new com.miui.home.launcher.gadget.AwesomeClock(view.getContext());miui.maml.MiAdvancedView child=new miui.maml.MiAdvancedView(view.getContext());child.mRoot=root;wrapper.mRoot=root;wrapper.mAwesomeView=child;wrapper.addView(child);glass.apply(wrapper);miui.maml.MiAdvancedView obsolete=new miui.maml.MiAdvancedView(view.getContext());obsolete.mRoot=root;glass.apply(obsolete);glass.detach(view);assertTrue(glass.summary().startsWith("1 "));assertTrue(glass.drawBackground(group,canvas));
+    }
     @Test public void glassRendersInsideOnlyTheRegisteredRootBeforeBackgroundRemoval(){
         ImageScreenElement bg=new ImageScreenElement(root);assertFalse(glass.skipDecoration(bg));
         assertFalse(glass.drawBackground(new ElementGroup(root),canvas));assertTrue(glass.drawBackground(group,canvas));assertTrue(glass.skipDecoration(bg));

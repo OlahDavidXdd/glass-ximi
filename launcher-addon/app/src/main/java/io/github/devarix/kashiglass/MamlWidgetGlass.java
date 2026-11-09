@@ -34,8 +34,9 @@ final class MamlWidgetGlass {
     }
     void apply(View host){
         if(!nativeHost(host))return;
-        Object root=call(host,"getMaMlRoot");if(root==null)root=call(host,"getRoot");
-        Card bound=roots.get(root);if(enabled&&bound!=null&&bound.host.get()==host)return;
+        Object root=engineRoot(host);
+        Object nested=field(host,"mAwesomeView");View owner=nested instanceof View?(View)nested:host;
+        Card bound=roots.get(root);if(enabled&&bound!=null&&bound.host.get()==owner){hosts.put(host,new WeakReference<>(root));return;}
         Object info=call(host,"getItemInfo");
         if(info==null&&host.getParent() instanceof View){info=call(host.getParent(),"getItemInfo");if(info==null)info=((View)host.getParent()).getTag();}
         String descriptor=metadata(info);
@@ -43,25 +44,26 @@ final class MamlWidgetGlass {
         if(descriptor.isEmpty())descriptor=metadata(host.getTag());
         String label=String.valueOf(field(info,"title"));
         Object previous=hosts.get(host)==null?null:hosts.get(host).get();
-        if(previous!=root){if(previous!=null)remove(previous);hosts.put(host,new WeakReference<>(root));}
+        if(previous!=root){if(previous!=null)removeOwned(previous,owner);hosts.put(host,new WeakReference<>(root));}
         boolean supported=WidgetSurfacePolicy.supported(descriptor,label)||MamlWidgetPolicy.supportedMetadata(descriptor);
         String diagnostic="MAML host="+host.getClass().getName()+" metadata="+descriptor+" title="+label+" root="+(root==null?"pending":root.getClass().getName())+" clock_weather="+supported;
         if(diagnostics.size()<40&&diagnostics.add(diagnostic))log.accept(diagnostic);
-        if(!enabled||backdrop==null||root==null||!supported){if(root!=null)remove(root);return;}
-        bind(host,root);
+        if(!enabled||backdrop==null||root==null||!supported){if(root!=null)removeOwned(root,owner);return;}
+        bind(owner,root);hosts.put(host,new WeakReference<>(root));
     }
     // Called only after identifying a native clock/weather host; also exercised by Android tests.
     void bind(View host,Object root){
         if(!enabled||backdrop==null||root==null)return;
-        Object previous=hosts.get(host)==null?null:hosts.get(host).get();if(previous!=null&&previous!=root)remove(previous);
+        Object previous=hosts.get(host)==null?null:hosts.get(host).get();if(previous!=null&&previous!=root)removeOwned(previous,host);
         hosts.put(host,new WeakReference<>(root));
         Card current=roots.get(root);if(current!=null&&current.host.get()==host)return;
+        if(current!=null&&current.underlay!=null)current.underlay.restore();
         Drawable glass=SharedGlassMaterial.create(host,backdrop,blur,strength,this::renderStatus,GlassSurface.WIDGET);
         Card card=new Card(host,glass);
         if(underlayCalls!=null){View body=host instanceof android.view.ViewGroup&&((android.view.ViewGroup)host).getChildCount()>0?((android.view.ViewGroup)host).getChildAt(0):host;card.underlay=new SearchBarBlur(body,host,underlayCalls,log,"WIDGET");card.underlay.useSharedMaterial(true);}
         roots.put(root,card);host.invalidate();changed.accept(summary());
     }
-    void detach(View host){WeakReference<Object> ref=hosts.get(host);if(ref!=null)remove(ref.get());changed.accept(summary());}
+    void detach(View host){WeakReference<Object> ref=hosts.remove(host);if(ref!=null){Object root=ref.get();Card card=roots.get(root);Object child=field(host,"mAwesomeView");View owner=child instanceof View?(View)child:host;if(card!=null&&card.host.get()==owner)remove(root);}changed.accept(summary());}
     boolean drawBackground(Object group,Canvas canvas){
         if(!enabled||Looper.myLooper()!=Looper.getMainLooper())return false;
         Object root=call(group,"getRoot");Card card=roots.get(root);
@@ -94,9 +96,11 @@ final class MamlWidgetGlass {
         if(card.described.size()<32&&card.described.add(diagnostic)){if(skip)card.removed++;log.accept("MAML layer "+diagnostic);if(skip)changed.accept(summary());}
         return skip;
     }
+    static Object engineRoot(View host){if(!nativeHost(host))return null;Object root=call(host,"getMaMlRoot");if(root==null)root=call(host,"getRoot");return root==null?field(host,"mRoot"):root;}
+    private void removeOwned(Object root,View owner){Card card=roots.get(root);if(card!=null&&card.host.get()==owner)remove(root);}
     private void remove(Object root){Card removed=roots.remove(root);if(removed!=null&&removed.underlay!=null)removed.underlay.restore();}
     String summary(){int bound=0,rendered=0,removed=0;synchronized(roots){for(Card card:roots.values())if(card.host.get()!=null){bound++;if(card.drawn)rendered++;removed+=card.removed;}}return bound+" MAML clock/weather bound, "+rendered+" rendered, "+removed+" background layers replaced";}
-    private static boolean nativeHost(View host){for(Class<?> type=host.getClass();type!=null;type=type.getSuperclass())if(type.getName().equals("com.miui.home.launcher.maml.MaMlHostView")||type.getName().equals("com.miui.maml.MiAdvancedView"))return true;return false;}
+    private static boolean nativeHost(View host){for(Class<?> type=host.getClass();type!=null;type=type.getSuperclass())if(type.getName().equals("com.miui.home.launcher.maml.MaMlHostView")||type.getName().equals("com.miui.maml.MiAdvancedView")||type.getName().equals("miui.maml.MiAdvancedView")||type.getName().equals("com.miui.maml.component.MamlView")||type.getName().equals("miui.maml.component.MamlView")||type.getName().equals("com.miui.home.launcher.gadget.AwesomeClock"))return true;return false;}
     private void renderStatus(String message){if(renderMessages.size()<32&&renderMessages.add(message))log.accept(message);}
     private static String metadata(Object info){if(info==null)return "";StringBuilder out=new StringBuilder();for(String name:new String[]{"appPackage","resPath","maMlTag","maMlTagCategory","type","title"}){Object value=field(info,name);if(value!=null)out.append(name).append('=').append(value).append(' ');}Object path=call(info,"getResPath");if(path!=null)out.append(path);return out.toString();}
     private static String string(Object value){return value==null?"":String.valueOf(value);}

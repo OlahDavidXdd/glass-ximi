@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'io.github.devarix.kashiglass'
     compileSdk 35
-    defaultConfig { applicationId 'io.github.devarix.kashiglass'; minSdk 33; targetSdk 35; versionCode 19; versionName '0.18.0-test' }
+    defaultConfig { applicationId 'io.github.devarix.kashiglass'; minSdk 33; targetSdk 35; versionCode 20; versionName '0.19.0-test' }
     buildFeatures { buildConfig true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     androidResources { noCompress += ['png'] }

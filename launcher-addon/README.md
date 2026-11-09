@@ -2,6 +2,24 @@
 
 Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
+## 0.19.0 — Controller redesign and clock engine fixes
+
+The controller now has Overview, Appearance and Diagnostics tabs, a neutral dark design, clear master/surface controls, and separate installed-app and loaded-hook versions. Cached hook information is marked unconfirmed until a fresh reply arrives. Restart feedback survives tab changes and rotation; expired requests do not report success. The focused animation report keeps return-state logs and filters unrelated widget render messages. Existing material preferences are preserved.
+
+Clock discovery now covers AwesomeClock's reflected root and rendering child, both `miui.maml` and `com.miui.maml` engines, and dynamically loaded engine classes. Wrapper and child share a stable root binding; stale aliases cannot remove the active owner's material. Native clock hands, time, weather content and interactions remain under the provider's control. Widget materials continue to request the screen backdrop rather than a static wallpaper texture. Unsupported native blur leaves an untinted rim; this is not a claim of live refraction on unsupported firmware.
+
+Animation target resolution now also follows Kashi's verified buddy-icon getters. Existing return-source repairs, native hide/alpha behavior and approved icon artwork remain intact. The supplied device logs did not establish the final source state, so the remaining stock-icon flash is **not claimed fixed** without a new phone trace. Native backdrop requests additionally reject supported mode getters that report an ignored request; API readback is not visual blur verification.
+
+Verification: **77 Java unit tests**, **216 Android runtime cases across API 33/35**, lint, APK assets and signature checks. Runtime tests execute production UI, binding and graphics classes; they do not execute Kashi/LSPosed hooks or Xiaomi compositor pixels. Controller screenshots are actual host-rendered native UI, not phone blur evidence.
+
+Install and reboot; in Overview, refresh connection and confirm loaded hook **0.19.0-test**. If animation or widget problems remain, export Diagnostics after reproducing them. See [signing/update limitations](SIGNING.md) before updating from a differently signed test build.
+
+### Controller screenshots
+
+Host-rendered native Android UI at phone dimensions; these do not demonstrate Xiaomi blur.
+
+[Overview](screenshots/controller-overview.png) · [Appearance](screenshots/controller-appearance.png) · [Diagnostics](screenshots/controller-diagnostics.png)
+
 ## Materials
 
 - **Liquid Glass** uses the actual SDF/refraction shader from [QWEA0/Liquid-Glass-Android](https://github.com/QWEA0/Liquid-Glass-Android), pinned at `16afe4d8b5d08a370d3f8c50b08d7f5c6eb5da4d`. The AGSL shader is unchanged. A Java Drawable adapter supplies wallpaper pixels and draws the silver foreground symbols separately. Grayscale is retained and chromatic dispersion is disabled.
@@ -47,7 +65,7 @@ The small home **Search** capsule is `pageindicators.CapsuleIndicator`, with an 
 
 Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. Native MAML clock/weather support is added in 0.14.0: recognized roots get the same material inside their native render pass, with large decorative background images/rectangles suppressed. Unknown or flattened images remain intact. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
 
-Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.18.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
+Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.19.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
 
 ## Screen matching and native source visibility (0.8.0)
 

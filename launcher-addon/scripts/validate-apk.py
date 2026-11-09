@@ -25,19 +25,22 @@ with zipfile.ZipFile(apk) as z:
  assert z.read('assets/xposed_init').decode().strip()=='io.github.devarix.kashiglass.GlassHook'
  report.update(icon_mappings=700,source_assets_match=True,asset_descriptors_supported=True,apk_sha256=hashlib.sha256(apk.read_bytes()).hexdigest())
 units=list((root/'app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'))
-assert {'TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml','TEST-io.github.devarix.kashiglass.WeakIdentityTest.xml'}<={p.name for p in units}
+assert {'TEST-io.github.devarix.kashiglass.ControllerStatusTest.xml','TEST-io.github.devarix.kashiglass.SupportReportTest.xml','TEST-io.github.devarix.kashiglass.GlassConfigTest.xml','TEST-io.github.devarix.kashiglass.LauncherRestartTest.xml','TEST-io.github.devarix.kashiglass.DiagnosticLogTest.xml','TEST-io.github.devarix.kashiglass.AutoIconPixelsTest.xml','TEST-io.github.devarix.kashiglass.GlassSurfaceTest.xml','TEST-io.github.devarix.kashiglass.AnimationPolicyTest.xml','TEST-io.github.devarix.kashiglass.HookVersionTest.xml','TEST-io.github.devarix.kashiglass.RestartHandshakeTest.xml','TEST-io.github.devarix.kashiglass.SourceVisibilityTest.xml','TEST-io.github.devarix.kashiglass.SearchSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.WidgetSurfacePolicyTest.xml','TEST-io.github.devarix.kashiglass.AnimationTargetResolverTest.xml','TEST-io.github.devarix.kashiglass.WeakIdentityTest.xml'}<={p.name for p in units}
 count=0
 for unit_path in units:
  unit=ET.parse(unit_path).getroot()
  assert unit.get('failures')=='0' and unit.get('errors')=='0' and int(unit.get('skipped','0'))==0
  count+=int(unit.get('tests'))
 for name,digest in json.loads((root/'compatibility/preserved-renderers-0110.json').read_text()).items():
- if name!='LiquidGlassDrawable.java':assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass'/name).read_bytes()).hexdigest()==digest,name
+ if name not in ['LiquidGlassDrawable.java','NativeScreenBackdrop.java']:assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass'/name).read_bytes()).hexdigest()==digest,name
 policy=json.loads((root/'compatibility/widget-live-policy-0180.json').read_text())
 assert policy['original_source_sha256']==json.loads((root/'compatibility/preserved-renderers-0110.json').read_text())['LiquidGlassDrawable.java']
 renderer=(root/'app/src/main/java/io/github/devarix/kashiglass/LiquidGlassDrawable.java').read_text()
 assert hashlib.sha256(renderer.encode()).hexdigest()==policy['updated_source_sha256']
 assert hashlib.sha256(renderer[renderer.index(policy['suffix_start']):].encode()).hexdigest()==policy['render_methods_suffix_sha256']
-report.update(icon_renderer_unchanged_from_0110=False,icon_render_methods_preserved=True,widget_live_policy_override=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
+backdrop_policy=json.loads((root/'compatibility/backdrop-readback-policy-0190.json').read_text())
+assert backdrop_policy['original_source_sha256']==json.loads((root/'compatibility/preserved-renderers-0110.json').read_text())['NativeScreenBackdrop.java']
+assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass/NativeScreenBackdrop.java').read_bytes()).hexdigest()==backdrop_policy['updated_source_sha256']
+report.update(icon_renderer_unchanged_from_0110=False,icon_render_methods_preserved=True,widget_live_policy_override=True,native_mode_readback_guard_present=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
 text=json.dumps(report,indent=2);print(text)
 if len(sys.argv)>2:Path(sys.argv[2]).write_text(text+'\n')

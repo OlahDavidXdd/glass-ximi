@@ -20,8 +20,7 @@ final class NativeScreenBackdrop {
         try{
             if(host==null){
                 host=new View(owner.getContext().getApplicationContext());host.setBackground(new ColorDrawable(Color.TRANSPARENT));
-                require(access.call(host,"setMiBackgroundBlurMode",1));require(access.call(host,"setMiViewBlurMode",1));
-                try{access.call(host,"clearMiBackgroundBlendColor");}catch(Throwable ignored){}
+                NativeBackdropRequest.configure(access,host);
                 Object candidate=access.field(host,"mRenderNode");if(!(candidate instanceof RenderNode))throw new IllegalStateException("Native blur render node unavailable");node=(RenderNode)candidate;
             }
             if(width!=bounds.width()||height!=bounds.height()||blur!=radius){
@@ -31,7 +30,7 @@ final class NativeScreenBackdrop {
                 Canvas recording=node.beginRecording(width,height);try{recording.drawColor(Color.TRANSPARENT,BlendMode.SRC_OVER);}finally{node.endRecording();}
             }
             node.setPosition(bounds.left,bounds.top,bounds.right,bounds.bottom);node.setAlpha(alpha/255f);canvas.drawRenderNode(node);
-            if(!reported){reported=true;status.accept("Screen-matching blur node configured. Device appearance still needs verification; no wallpaper tile or color tint is drawn.");}return true;
+            if(!reported){reported=true;status.accept("Native backdrop requested; supported mode getters were checked. Proxy is a dedicated render node. Actual scene sampling still needs phone verification; no wallpaper tile is substituted.");}return true;
         }catch(Throwable e){failed=true;host=null;node=null;status.accept("Native screen blur unavailable: "+e.getClass().getSimpleName()+". Using an untinted transparent glass rim; no mismatched wallpaper fill.");return false;}
     }
     private static void require(Object result){if(Boolean.FALSE.equals(result))throw new IllegalStateException("Native blur request rejected");}

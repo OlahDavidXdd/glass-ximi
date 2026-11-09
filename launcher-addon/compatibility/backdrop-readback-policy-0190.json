@@ -1,0 +1,5 @@
+{
+  "original_source_sha256": "eaccb4982fa6f655e1f8290f69bed57bd572566222e50c078d542ef0db3924ab",
+  "updated_source_sha256": "db29e9c4ed006add7fb29ea21ace2367197eff485d0cea0af6f875caffe9f5c4",
+  "reason": "Optional native mode readbacks reject silently ignored requests; API requests are never described as pixel verification. Draw geometry/material parameters are unchanged."
+}

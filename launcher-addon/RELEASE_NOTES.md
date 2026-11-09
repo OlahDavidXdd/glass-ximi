@@ -1,5 +1,17 @@
 Developer: **devarix**
 
+## 0.19.0 — Controller redesign and clock engine fixes
+
+The controller now has Overview, Appearance and Diagnostics tabs, a neutral dark design, clear master/surface controls, and separate installed-app and loaded-hook versions. Cached hook information is marked unconfirmed until a fresh reply arrives. Restart feedback survives tab changes and rotation; expired requests do not report success. The focused animation report keeps return-state logs and filters unrelated widget render messages. Existing material preferences are preserved.
+
+Clock discovery now covers AwesomeClock's reflected root and rendering child, both `miui.maml` and `com.miui.maml` engines, and dynamically loaded engine classes. Wrapper and child share a stable root binding; stale aliases cannot remove the active owner's material. Native clock hands, time, weather content and interactions remain under the provider's control. Widget materials continue to request the screen backdrop rather than a static wallpaper texture. Unsupported native blur leaves an untinted rim; this is not a claim of live refraction on unsupported firmware.
+
+Animation target resolution now also follows Kashi's verified buddy-icon getters. Existing return-source repairs, native hide/alpha behavior and approved icon artwork remain intact. The supplied device logs did not establish the final source state, so the remaining stock-icon flash is **not claimed fixed** without a new phone trace. Native backdrop requests additionally reject supported mode getters that report an ignored request; API readback is not visual blur verification.
+
+Verification: **77 Java unit tests**, **216 Android runtime cases across API 33/35**, lint, APK assets and signature checks. Runtime tests execute production UI, binding and graphics classes; they do not execute Kashi/LSPosed hooks or Xiaomi compositor pixels. Controller screenshots are actual host-rendered native UI, not phone blur evidence.
+
+Install and reboot; in Overview, refresh connection and confirm loaded hook **0.19.0-test**. If animation or widget problems remain, export Diagnostics after reproducing them. See [signing/update limitations](SIGNING.md) before updating from a differently signed test build.
+
 ## 0.18.0 — Search-sized page pill, live widgets and return cleanup
 
 Page dots now use the native Search sibling's measured width/height, gravity and margins. Hidden Search can be measured without showing it; the page pill follows Search text/size changes and restores its native layout params when disabled. Dot content and native show/hide behavior remain intact.

@@ -288,7 +288,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     }
     private static ArrayList<Object> targetLinks(Object node){
         ArrayList<Object> links=new ArrayList<>();
-        for(String method:new String[]{"getAnimTargetContainerView","getTargetRootView","getShortcutIcon","getMBuddyInfo","getShortcutInfo","getItemInfo"})links.add(call(node,method));
+        for(String method:new String[]{"getAnimTargetContainerView","getTargetRootView","getShortcutIcon","getBuddyIconView","getBuddyIconObject","getMBuddyInfo","getShortcutInfo","getItemInfo"})links.add(call(node,method));
         for(String name:new String[]{"mAnimTargetRef","mLaunchAppAndBackHomeAnimTargetRef","mInfo","mItemInfo","mShortcutInfo"}){Object value=field(node,name);links.add(value instanceof java.lang.ref.Reference?((java.lang.ref.Reference<?>)value).get():value);}return links;
     }
     private static Bitmap animationSnapshot(Object target){

@@ -20,6 +20,7 @@ final class LauncherWidgets {
     private final android.os.Handler main=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Map<View,Change> changes=new WeakHashMap<>();
     private final Map<View,Host> hosts=new WeakHashMap<>();
+    private final Set<Class<?>> trackedTypes=Collections.newSetFromMap(new IdentityHashMap<>()),renderTypes=Collections.newSetFromMap(new IdentityHashMap<>()),rootTypes=Collections.newSetFromMap(new IdentityHashMap<>());
     private final Consumer<String> log,report;
     private final MamlWidgetGlass maml;
     private final SearchBarBlur.Calls underlayCalls;
@@ -35,22 +36,11 @@ final class LauncherWidgets {
     LauncherWidgets(Consumer<String> report,Consumer<String> log){this(report,log,(view,method,args)->XposedHelpers.callMethod(view,method,args));}
     LauncherWidgets(Consumer<String> report,Consumer<String> log,SearchBarBlur.Calls calls){this.report=report;this.log=log;this.underlayCalls=calls;this.maml=new MamlWidgetGlass(log,message->counts(),calls);}
     void install(ClassLoader loader){
-        Class<?> legacy=XposedHelpers.findClassIfExists("com.miui.maml.MiAdvancedView",loader);
-        log.accept("Legacy clock MAML view found="+(legacy!=null));
-        if(legacy!=null){
-            XposedBridge.hookAllConstructors(legacy,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
-            XposedBridge.hookAllMethods(legacy,"init",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
-        }
-        Class<?> mamlHost=XposedHelpers.findClassIfExists("com.miui.home.launcher.maml.MaMlHostView",loader);
-        log.accept("MAML widget host found="+(mamlHost!=null));
-        if(mamlHost!=null){
-            XposedBridge.hookAllConstructors(mamlHost,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
-            Class<?> mamlView=XposedHelpers.findClassIfExists("com.miui.maml.component.MamlView",loader);
-            if(mamlView!=null)XposedBridge.hookAllMethods(mamlView,"initMamlview",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
-            Class<?> group=XposedHelpers.findClassIfExists("com.miui.maml.elements.ElementGroup",loader);
-            if(group!=null)XposedBridge.hookAllMethods(group,"doRender",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(p.args.length==1&&p.args[0] instanceof android.graphics.Canvas)maml.drawBackground(p.thisObject,(android.graphics.Canvas)p.args[0]);}catch(Throwable error){log.accept("MAML background hook error: "+error.getClass().getSimpleName());}}});
-            Class<?> element=XposedHelpers.findClassIfExists("com.miui.maml.elements.AnimatedScreenElement",loader);
-            if(element!=null)XposedBridge.hookAllMethods(element,"render",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(maml.skipDecoration(p.thisObject))p.setResult(null);}catch(Throwable error){log.accept("MAML decoration hook error: "+error.getClass().getSimpleName());}}});
+        for(String prefix:new String[]{"com.miui.maml","miui.maml"})installMamlFamily(loader,prefix);
+        for(String name:new String[]{"com.miui.home.launcher.maml.MaMlHostView","com.miui.home.launcher.gadget.AwesomeClock"}){
+            Class<?> wrapper=XposedHelpers.findClassIfExists(name,loader);log.accept("Widget wrapper "+name+" found="+(wrapper!=null));if(wrapper==null)continue;
+            XposedBridge.hookAllConstructors(wrapper,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
+            XposedBridge.hookAllMethods(wrapper,"onCreate",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
         }
         Class<?> type=XposedHelpers.findClassIfExists("com.miui.home.launcher.LauncherAppWidgetHostView",loader);
         log.accept("Widget host found="+(type!=null));if(type==null)return;
@@ -59,6 +49,27 @@ final class LauncherWidgets {
         }});
         for(String method:new String[]{"updateAppWidget","setAppWidget","reInflate","onAttachedToWindow"})
             XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
+    }
+    private void installMamlFamily(ClassLoader loader,String prefix){
+        try{
+            for(String name:new String[]{prefix+".MiAdvancedView",prefix+".component.MamlView"}){
+                Class<?> viewType=XposedHelpers.findClassIfExists(name,loader);log.accept("Widget engine view "+name+" found="+(viewType!=null));if(viewType==null||!trackedTypes.add(viewType))continue;
+                XposedBridge.hookAllConstructors(viewType,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
+                for(String method:new String[]{"init","initMamlview"})XposedBridge.hookAllMethods(viewType,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
+            }
+            Class<?> group=XposedHelpers.findClassIfExists(prefix+".elements.ElementGroup",loader);
+            if(group!=null&&renderTypes.add(group))XposedBridge.hookAllMethods(group,"doRender",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(p.args.length==1&&p.args[0] instanceof android.graphics.Canvas)maml.drawBackground(p.thisObject,(android.graphics.Canvas)p.args[0]);}catch(Throwable error){log.accept("MAML background hook error: "+error.getClass().getSimpleName());}}});
+            Class<?> element=XposedHelpers.findClassIfExists(prefix+".elements.AnimatedScreenElement",loader);
+            if(element!=null&&renderTypes.add(element))XposedBridge.hookAllMethods(element,"render",new XC_MethodHook(){@Override protected void beforeHookedMethod(MethodHookParam p){try{if(maml.skipDecoration(p.thisObject))p.setResult(null);}catch(Throwable error){log.accept("MAML decoration hook error: "+error.getClass().getSimpleName());}}});
+        }catch(Throwable error){log.accept("Widget engine hook error "+prefix+": "+error.getClass().getSimpleName());}
+    }
+    private void ensureMamlBackend(View view){
+        Object root=MamlWidgetGlass.engineRoot(view);if(root==null)return;
+        for(Class<?> type=root.getClass();type!=null;type=type.getSuperclass()){
+            String name=type.getName();if((name.equals("com.miui.maml.ScreenElementRoot")||name.equals("miui.maml.ScreenElementRoot"))&&rootTypes.add(type)){
+                log.accept("Resolved widget engine loader: "+name);installMamlFamily(type.getClassLoader(),name.substring(0,name.lastIndexOf('.')));return;
+            }
+        }
     }
     void track(View view){
         if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){main.post(()->track(view));return;}
@@ -74,7 +85,7 @@ final class LauncherWidgets {
         private void remove(){android.view.ViewTreeObserver observer=tree.get();if(observer!=null&&observer.isAlive())observer.removeOnPreDrawListener(this);tree.clear();}
         public boolean onPreDraw(){
             View view=owner.get();if(view==null){remove();return true;}
-            if(enabled)maml.apply(view);Host state=hosts.get(view);
+            if(enabled){ensureMamlBackend(view);maml.apply(view);}Host state=hosts.get(view);
             if(!enabled||!view.isShown()||state==null||!state.supported)return true;
             View root=view instanceof ViewGroup&&((ViewGroup)view).getChildCount()>0?((ViewGroup)view).getChildAt(0):null;
             boolean dirty=root!=state.root.get();
@@ -96,7 +107,7 @@ final class LauncherWidgets {
     void apply(View view){
         if(android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()){main.post(()->apply(view));return;}
         if(applying||!enabled||backdrop==null)return;
-        maml.apply(view);
+        ensureMamlBackend(view);maml.apply(view);
         if(!(view instanceof AppWidgetHostView))return;
         track(view);
         applying=true;

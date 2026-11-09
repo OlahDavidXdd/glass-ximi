@@ -1,3 +1,13 @@
+# 0.19.0: controller, clock ownership and native request checks
+
+AwesomeClock's reflected `mRoot`/`mAwesomeView` path was missing from the prior discovery. Both MAML namespaces and actual root class loaders are covered. Root ownership is canonicalized to the render child and old aliases cannot detach a new owner. Six added Android cases verify these boundaries across API 33/35 using verified API-shaped fixtures. Real engine dispatch still needs a phone.
+
+The redesigned controller adds twenty Android cases for real Activity layout, preferences, status freshness, tab/rotation state and restart feedback. Eight additional cases verify native mode acceptance/readback, rejection and missing-getter compatibility. Total: 216 Android runtime cases and 77 Java unit tests. Existing expected-failure controls remain pinned.
+
+NativeScreenBackdrop's whole-file hash intentionally changes for mode readback; `backdrop-readback-policy-0190.json` records the previous/new hashes. Drawing geometry, approved icon rendering methods, shader and assets remain unchanged. A requested mode with a successful getter does not establish actual compositor scene sampling. Widgets request live mode and do not substitute a static wallpaper image if live mode is unavailable.
+
+Buddy-icon getters expand bounded target resolution. Existing source-return guards remain; there is no new evidence proving the persistent phone animation flash fixed. Controller Diagnostics can copy a focused animation trace. No native animation timing or visibility is forced.
+
 # 0.18.0: compact page geometry, live widgets and cleanup diagnostics
 
 PagePillLayout measures the existing Search sibling, including a hidden sibling, and copies its preferred box/gravity/margins into an independent page layout-params object. Native params are restored on disable and native content/visibility remain intact. Real Android layout tests verify both physical bounds and restoration.

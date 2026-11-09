@@ -1,0 +1,464 @@
+{
+  "scope": "Static inspection of public Kashi V7.5 APK; not proof of hook dispatch on latest firmware",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "classes": {
+    "Lcom/miui/home/launcher/ShortcutInfo;": {
+      "super": "Lcom/miui/home/model/api/ItemInfoWithIconAndMessage;",
+      "fields": [
+        [
+          "mBuddyIcon",
+          "Lcom/miui/home/icon/IShortcutIcon;"
+        ],
+        [
+          "mShortcutIconView",
+          "Lcom/miui/home/launcher/ShortcutIcon;"
+        ]
+      ],
+      "methods": [
+        {
+          "name": "getBuddyIconObject",
+          "descriptor": "()Ljava/lang/Object;",
+          "code": [
+            [
+              "invoke-virtual",
+              "v0, Lcom/miui/home/launcher/ShortcutInfo;->getBuddyIcon()Lcom/miui/home/icon/IShortcutIcon;"
+            ],
+            [
+              "move-result-object",
+              "v0"
+            ],
+            [
+              "return-object",
+              "v0"
+            ]
+          ]
+        },
+        {
+          "name": "getBuddyIconView",
+          "descriptor": "()Landroid/view/View;",
+          "code": [
+            [
+              "iget-object",
+              "v0, v0, Lcom/miui/home/launcher/ShortcutInfo;->mShortcutIconView Lcom/miui/home/launcher/ShortcutIcon;"
+            ],
+            [
+              "return-object",
+              "v0"
+            ]
+          ]
+        },
+        {
+          "name": "getBuddyIconView",
+          "descriptor": "(Landroid/view/ViewGroup;)Landroid/view/View;",
+          "code": [
+            [
+              "iget-object",
+              "v0, v1, Lcom/miui/home/launcher/ShortcutInfo;->mBuddyForParent Landroid/view/ViewGroup;"
+            ],
+            [
+              "if-ne",
+              "v2, v0, +005h"
+            ],
+            [
+              "iget-object",
+              "v1, v1, Lcom/miui/home/launcher/ShortcutInfo;->mShortcutIconView Lcom/miui/home/launcher/ShortcutIcon;"
+            ],
+            [
+              "return-object",
+              "v1"
+            ],
+            [
+              "const/4",
+              "v1, 0"
+            ],
+            [
+              "return-object",
+              "v1"
+            ]
+          ]
+        }
+      ]
+    },
+    "Lcom/miui/home/launcher/gadget/AwesomeClock;": {
+      "super": "Lcom/miui/home/launcher/gadget/AdvancedGadget;",
+      "fields": [
+        [
+          "mAwesomeView",
+          "Landroid/view/View;"
+        ],
+        [
+          "mRoot",
+          "Ljava/lang/Object;"
+        ]
+      ],
+      "methods": [
+        {
+          "name": "onCreate",
+          "descriptor": "()V",
+          "code": [
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mElementContext Ljava/lang/Object;"
+            ],
+            [
+              "if-nez",
+              "v0, +003h"
+            ],
+            [
+              "return-void",
+              ""
+            ],
+            [
+              "invoke-static",
+              "v0, Lcom/miui/launcher/utils/MamlUtils;->getManifestRoot(Ljava/lang/Object;)Lorg/w3c/dom/Element;"
+            ],
+            [
+              "move-result-object",
+              "v0"
+            ],
+            [
+              "if-eqz",
+              "v0, +0b0h"
+            ],
+            [
+              "const-string",
+              "v1, \"clock\""
+            ],
+            [
+              "invoke-interface",
+              "v0, Lorg/w3c/dom/Node;->getNodeName()Ljava/lang/String;"
+            ],
+            [
+              "move-result-object",
+              "v2"
+            ],
+            [
+              "invoke-virtual",
+              "v1, v2, Ljava/lang/String;->equalsIgnoreCase(Ljava/lang/String;)Z"
+            ],
+            [
+              "move-result",
+              "v1"
+            ],
+            [
+              "if-nez",
+              "v1, +004h"
+            ],
+            [
+              "goto/16",
+              "+0a2h"
+            ],
+            [
+              "const-string/jumbo",
+              "v1, update_interval"
+            ],
+            [
+              "invoke-interface",
+              "v0, v1, Lorg/w3c/dom/Element;->getAttribute(Ljava/lang/String;)Ljava/lang/String;"
+            ],
+            [
+              "move-result-object",
+              "v1"
+            ],
+            [
+              "invoke-static",
+              "v1, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I"
+            ],
+            [
+              "move-result",
+              "v1"
+            ],
+            [
+              "iput",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mUpdateInterval I"
+            ],
+            [
+              "goto",
+              "+6h"
+            ],
+            [
+              "const",
+              "v1, 60000"
+            ],
+            [
+              "iput",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mUpdateInterval I"
+            ],
+            [
+              "invoke-virtual",
+              "v3, Landroid/view/View;->getLayoutParams()Landroid/view/ViewGroup$LayoutParams;"
+            ],
+            [
+              "move-result-object",
+              "v1"
+            ],
+            [
+              "const-string/jumbo",
+              "v2, width"
+            ],
+            [
+              "invoke-interface",
+              "v0, v2, Lorg/w3c/dom/Element;->getAttribute(Ljava/lang/String;)Ljava/lang/String;"
+            ],
+            [
+              "move-result-object",
+              "v2"
+            ],
+            [
+              "invoke-static",
+              "v2, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I"
+            ],
+            [
+              "move-result",
+              "v2"
+            ],
+            [
+              "iput",
+              "v2, v1, Landroid/view/ViewGroup$LayoutParams;->width I"
+            ],
+            [
+              "invoke-virtual",
+              "v3, Landroid/view/View;->getLayoutParams()Landroid/view/ViewGroup$LayoutParams;"
+            ],
+            [
+              "move-result-object",
+              "v1"
+            ],
+            [
+              "const-string",
+              "v2, \"height\""
+            ],
+            [
+              "invoke-interface",
+              "v0, v2, Lorg/w3c/dom/Element;->getAttribute(Ljava/lang/String;)Ljava/lang/String;"
+            ],
+            [
+              "move-result-object",
+              "v0"
+            ],
+            [
+              "invoke-static",
+              "v0, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I"
+            ],
+            [
+              "move-result",
+              "v0"
+            ],
+            [
+              "iput",
+              "v0, v1, Landroid/view/ViewGroup$LayoutParams;->height I"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mElementContext Ljava/lang/Object;"
+            ],
+            [
+              "invoke-static",
+              "v0, Lcom/miui/launcher/utils/MamlUtils;->createScreenElementRoot(Ljava/lang/Object;)Ljava/lang/Object;"
+            ],
+            [
+              "move-result-object",
+              "v0"
+            ],
+            [
+              "iput-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "iget",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mUpdateInterval I"
+            ],
+            [
+              "int-to-float",
+              "v1, v1"
+            ],
+            [
+              "const/high16",
+              "v2, 1148846080"
+            ],
+            [
+              "div-float/2addr",
+              "v2, v1"
+            ],
+            [
+              "invoke-static",
+              "v0, v2, Lcom/miui/launcher/utils/MamlUtils;->setDefaultFramerate(Ljava/lang/Object; F)V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "iget-object",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mMamlConfig Ljava/lang/String;"
+            ],
+            [
+              "invoke-static",
+              "v0, v1, Lcom/miui/launcher/utils/MamlUtils;->setConfig(Ljava/lang/Object; Ljava/lang/String;)V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "const/4",
+              "v1, 1"
+            ],
+            [
+              "invoke-static",
+              "v0, v1, Lcom/miui/launcher/utils/MamlUtils;->setScaleByDensity(Ljava/lang/Object; Z)V"
+            ],
+            [
+              "invoke-direct",
+              "v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->setResizeRadio()V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "invoke-static",
+              "v0, Lcom/miui/launcher/utils/MamlUtils;->load(Ljava/lang/Object;)Z"
+            ],
+            [
+              "move-result",
+              "v0"
+            ],
+            [
+              "if-nez",
+              "v0, +003h"
+            ],
+            [
+              "return-void",
+              ""
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/customview/LauncherFrameLayout;->mContext Landroid/content/Context;"
+            ],
+            [
+              "iget-object",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "invoke-static",
+              "v0, v1, Lcom/miui/launcher/utils/MamlUtils;->createMiAdvancedView(Landroid/content/Context; Ljava/lang/Object;)Landroid/view/View;"
+            ],
+            [
+              "move-result-object",
+              "v0"
+            ],
+            [
+              "iput-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mAwesomeView Landroid/view/View;"
+            ],
+            [
+              "const/4",
+              "v1, 0"
+            ],
+            [
+              "invoke-static",
+              "v0, v1, Lcom/miui/launcher/utils/MamlUtils;->setFocusable(Landroid/view/View; Z)V"
+            ],
+            [
+              "new-instance",
+              "v0, Landroid/widget/FrameLayout$LayoutParams;"
+            ],
+            [
+              "const/4",
+              "v1, -1"
+            ],
+            [
+              "invoke-direct",
+              "v0, v1, v1, Landroid/widget/FrameLayout$LayoutParams;-><init>(I I)V"
+            ],
+            [
+              "iget-object",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mAwesomeView Landroid/view/View;"
+            ],
+            [
+              "invoke-virtual",
+              "v3, v1, v0, Landroid/view/ViewGroup;->addView(Landroid/view/View; Landroid/view/ViewGroup$LayoutParams;)V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mComponentCode Ljava/lang/String;"
+            ],
+            [
+              "if-eqz",
+              "v0, +016h"
+            ],
+            [
+              "iget-object",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mMamlPath Ljava/lang/String;"
+            ],
+            [
+              "if-eqz",
+              "v1, +012h"
+            ],
+            [
+              "iget-object",
+              "v1, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "const-string",
+              "v2, \"__config_code\""
+            ],
+            [
+              "invoke-static",
+              "v1, v2, v0, Lcom/miui/launcher/utils/MamlUtils;->putVariableString(Ljava/lang/Object; Ljava/lang/String; Ljava/lang/String;)V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "const-string",
+              "v1, \"__config_path\""
+            ],
+            [
+              "iget-object",
+              "v2, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mMamlPath Ljava/lang/String;"
+            ],
+            [
+              "invoke-static",
+              "v0, v1, v2, Lcom/miui/launcher/utils/MamlUtils;->putVariableString(Ljava/lang/Object; Ljava/lang/String; Ljava/lang/String;)V"
+            ],
+            [
+              "iget-object",
+              "v0, v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->mRoot Ljava/lang/Object;"
+            ],
+            [
+              "const-string/jumbo",
+              "v1, ro.miui.region"
+            ],
+            [
+              "invoke-static",
+              "v1, Lcom/miui/launcher/utils/SystemProperties;->get(Ljava/lang/String;)Ljava/lang/String;"
+            ],
+            [
+              "move-result-object",
+              "v1"
+            ],
+            [
+              "const-string",
+              "v2, \"__rom_region\""
+            ],
+            [
+              "invoke-static",
+              "v0, v2, v1, Lcom/miui/launcher/utils/MamlUtils;->putVariableString(Ljava/lang/Object; Ljava/lang/String; Ljava/lang/String;)V"
+            ],
+            [
+              "invoke-virtual",
+              "v3, Lcom/miui/home/launcher/gadget/AwesomeClock;->notifyColorChanged()V"
+            ],
+            [
+              "return-void",
+              ""
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}
