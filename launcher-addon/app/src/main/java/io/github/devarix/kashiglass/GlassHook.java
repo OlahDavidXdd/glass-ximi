@@ -297,7 +297,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 Bundle config=context.getContentResolver().call(GlassProvider.SETTINGS,"settings",null,identity);
                 if(config==null)throw new IllegalStateException("Provider unavailable");
                 debugEnabled=config.getBoolean("debug_logs",true);
-                debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
+                debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" screen_match="+config.getBoolean("screen_match",true)+" search="+config.getBoolean("search_glass",true)+" loaded="+BuildConfig.VERSION_NAME+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
                 boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
                 boolean nextWhite=config.getBoolean("white_symbols",true),nextScreen=config.getBoolean("screen_match",true);
                 boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true),nextWidgets=config.getBoolean("widget_glass",true);

@@ -9,6 +9,14 @@ Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Ad
 
 This adapts the API 33+ lens core, not the entire library/AAR or its legacy NDK pipeline. The upstream MIT license is bundled in the APK and source. This project is new add-on code, not Kashi's unpublished launcher source, and does not replace or re-sign the launcher APK.
 
+## Attached compact-search blur (0.11.0)
+
+[Download 0.11.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.11.0-test). The phone log showed 0.9.0 was both installed and loaded, so it did not exercise the 0.10.0 animation fixes. Those fixes are included unchanged here.
+
+The compact home capsule now requests native blur on its existing attached decorative ImageView. That view receives a neutral clear rim and no static-wallpaper lens/gray fallback. Its neighboring text and search action are retained. This is independent of icon material, so keep your current icon settings. New `SEARCH_BLUR` logs report attachment, hardware state, dimensions, native mode/radius readback and failures. Calls are deduplicated; original state is restored on disable and rejected firmware calls roll back. Native API acceptance is not proof of visually correct blur.
+
+Install, enable **Glass search bar** and **Backdrop blur**, restart/reboot, and verify **Loaded hook: 0.11.0-test — matches app**. Host native-graphics tests check attachment/routing/restoration and transparent-rim rendering with the firmware call boundary recorded/rejected. They do not emulate Xiaomi blur pixels or execute Kashi/LSPosed. See [release notes](RELEASE_NOTES.md).
+
 ## Animation reliability update (0.10.0)
 
 [Download 0.10.0](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.10.0-test). Preserves the approved icon rendering and 0.9.0 search/widget surfaces. This update hardens animation hand-offs and source visibility without replacing Kashi’s springs, durations, geometry or cancel/end handling.

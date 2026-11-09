@@ -1,21 +1,19 @@
 Developer: **devarix**
 
-## 0.10.0 — Animation ownership, cache and visibility fixes
+## 0.11.0 — Attached background blur for compact home search
 
-Keeps the approved icon artwork/material, compact search glass and supported widget background treatment from 0.9.0. No stronger refraction or mockup-only widget redesign is added.
+The supplied phone log reports **installed=0.9.0-test and loaded=0.9.0-test**. The 0.10.0 animation changes were not running. This update includes those changes intact; it does not assume an unspecified remaining animation symptom has been identified or fixed.
 
-- Resolves glass animation artwork through the source view, native target-container/root, buddy model and weak target links. Traversal is bounded and cycle-safe. Widget/folder-preview targets retain their native animation content.
-- Rebuilds evicted transition artwork from available glyphs, including live-view artwork when the glyph LRU has evicted it. A single immutable binding holder keeps the app key and glyph together so a recycled drawer slot cannot pair a new key with its previous app’s symbol.
-- Native animation inputs and all ConstantState clones receive independent mutable pixel copies from an unexposed template. This applies to both transparent and Frosted snapshots; recycling/mutating one native copy does not invalidate its siblings or future clones. Nested initializers reuse already-owned inputs rather than repeatedly copying them.
-- Keeps native hide/show for the same app during rebinding, resets stale hidden/fade state when a drawer view is actually rebound to another app, clamps finite fade overshoot before the native setter, and rejects NaN/infinite alpha updates.
-- Opening/getter hand-offs no longer perform wallpaper/GPU readback or synchronous asset-provider I/O. Transparent mode keeps its existing rim/white-symbol snapshots. Optional static-wallpaper mode uses a logged static fallback if a ready lens snapshot is absent; it does not generate a new optical capture during launch.
-- Avoids repeated settings/material rebuilds on every Activity resume and on unchanged connection checks. Debounces the remaining full scan by 400 ms and runs it only while the launcher has focus. Native animation clocks, durations, springs, source geometry, cancel/end callbacks and launcher visibility remain in charge.
-- Logs reused as well as replaced glass animation hand-offs. The counter measures hand-offs, not launches, frames or proof of smoothness.
+- Compact home search uses its existing attached `CapsuleIndicator.mIndicatorBackground` ImageView for Xiaomi native background blur. The older implementation disabled blur on that real view and delegated rendering to a detached proxy or static-wallpaper drawable.
+- Gives that decorative child a clear, neutral capsule rim. It no longer selects the icon material's static-wallpaper lens or gray fallback. **Keep your existing icon settings**: search requests live blur independently of Match screen background. Search text, magnifier, taps, size and native visibility stay intact.
+- Captures/restores the background view's outline, clip setting and readable native blur modes/radius. Requests are deduplicated, wait for attachment/layout, and rejected firmware calls are rolled back without retrying every frame.
+- New `SEARCH_BLUR` diagnostics report attachment, size, hardware acceleration, requested radius, readable native modes/radius, or rejection. API acceptance is not presented as visual verification. Config logs include running version and material options.
+- Keeps the 0.10.0 icon/animation code, curated art, automatic glyphs and widget/drawer/dock behavior. No stronger-refraction proposal is added.
 
 ## Apply
 
-Install and keep LSPosed enabled for **System launcher (`com.miui.home`)**. Restart the launcher or reboot, then verify **Loaded hook: 0.10.0-test — matches app**. Previous releases remain available. If the APK signature prevents an update, reinstall **devarix Glass only**, restore its LSPosed scope and reboot; keep System launcher installed.
+Install **0.11.0-test**, keep LSPosed scoped to **System launcher (`com.miui.home`)**, and restart launcher/reboot. Verify **Loaded hook: 0.11.0-test — matches app**. Leave **Glass search bar** and **Backdrop blur** on; keep your preferred icon material settings. The provided 0.9.0 log cannot verify the later animation fixes.
 
-Build, unit tests, lint, signature, native Kashi V7.5 hook signatures, unchanged visual rendering sources, 700 icon/glyph assets and shader provenance are checked. **Animation appearance and smoothness have not been verified on a physical device.** These changes fix identified code paths; they do not establish that every firmware/gesture/launcher animation issue is gone. Android system splash artwork remains outside this launcher module’s scope.
+Build, 63 unit tests, lint, signature/assets and native Kashi V7.5 signatures are checked. The separate host-side native-graphics suite covers 30 cases on API 33/35, including attached-view routing, restoration, rejected requests and the clear rim. Search firmware calls in those routing tests are recorded/rejected, **not emulated**; real Xiaomi blur pixels, LSPosed dispatch and Kashi gesture smoothness still require checking on a compatible runtime.
 
-For verification: check opening and closing from home, dock and drawer, quickly launch different apps, cancel a home gesture, and scroll/reuse drawer slots. If a symptom remains, export logs after reproducing it; they include loaded version, cache fallbacks and native hand-offs. Clock/weather backgrounds remain provider-dependent, as in 0.9.0.
+If an issue remains after the loaded version matches, export the new `SEARCH_BLUR`/animation logs. The animation symptom itself still needs a description. Previous releases remain available. If Android rejects the update signature, reinstall **devarix Glass only**, re-enable its scope and reboot; keep System launcher installed.

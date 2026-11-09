@@ -6,7 +6,7 @@ if (findProperty('verificationBuildDir')) layout.buildDirectory.set(file(findPro
 def production = file('../../launcher-addon/app/src/main/java')
 sourceSets.main.java {
     srcDirs = [production]
-    include '**/OwnedTransitionDrawable.java', '**/LiquidGlassDrawable.java', '**/GlassSurface.java', '**/GlassBackdrop.java', '**/BackdropGeometry.java', '**/NativeScreenBackdrop.java', '**/SourceVisibility.java', '**/AnimationTargetResolver.java'
+    include '**/OwnedTransitionDrawable.java', '**/LiquidGlassDrawable.java', '**/GlassSurface.java', '**/GlassBackdrop.java', '**/BackdropGeometry.java', '**/NativeScreenBackdrop.java', '**/SourceVisibility.java', '**/AnimationTargetResolver.java', '**/SearchGlassDrawable.java', '**/SearchBarBlur.java'
 }
 if (findProperty('ownedBaselineRoot')) {
     def original = new File(production, 'io/github/devarix/kashiglass/OwnedTransitionDrawable.java').canonicalFile

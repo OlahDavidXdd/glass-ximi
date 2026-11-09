@@ -26,7 +26,7 @@ final class LauncherSurfaces {
         Drawable original;ColorStateList tint;PorterDuff.Mode mode;
         WeakReference<Drawable> ours=new WeakReference<>(null);
         WeakReference<View> decor=new WeakReference<>(null);int decorVisibility;
-        Drawable indicatorImage;WeakReference<ImageView> indicator=new WeakReference<>(null);boolean nativeBlurDisabled;
+        Drawable indicatorImage;WeakReference<ImageView> indicator=new WeakReference<>(null);boolean nativeBlurManaged;SearchBarBlur searchBlur;
         boolean applied,decorHidden;int revision=-1,kind;
     }
     LauncherSurfaces(Consumer<String> report,Consumer<String> log){this.report=report;this.log=log;}
@@ -41,7 +41,7 @@ final class LauncherSurfaces {
                     if(view.isAttachedToWindow())watcher.onViewAttachedToWindow(view);
                 }});
                 for(String method:new String[]{"onFinishInflate","onAttachedToWindow","onResume","refreshStyle","refreshSearchBarExterior","onWallpaperColorChanged","updateContainerVisibility","resetAppsWhenLauncherModeChanged","updateLauncherSearchBarVisibility","refreshSearchBarEnable","refreshWithViewType","setBgBlurIfSupported","setBgBlurIfSupported$kx","setBgBlurIfSupportedForU","createBackgroundDrawable","onDarkModeChanged"}){
-                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View v=(View)p.thisObject;if(SearchSurfacePolicy.capsuleHost(v.getClass().getName())){Object body=XposedHelpers.getObjectField(v,"mIndicatorBackground");if(body instanceof View){State state=states.get(body);if(state!=null)state.nativeBlurDisabled=false;}}apply(v);}});
+                    XposedBridge.hookAllMethods(type,method,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View v=(View)p.thisObject;if(SearchSurfacePolicy.capsuleHost(v.getClass().getName())){Object body=XposedHelpers.getObjectField(v,"mIndicatorBackground");if(body instanceof View){State state=states.get(body);if(state!=null)state.nativeBlurManaged=false;}}apply(v);}});
                 }
             }catch(Throwable e){log.accept("Surface hook error "+name+": "+e);}
         }
@@ -93,7 +93,8 @@ final class LauncherSurfaces {
         if(state==null){state=new State();state.kind=kind;states.put(view,state);}
         if(!state.applied||state.revision!=revision||view.getBackground()!=state.ours.get()){
             if(!state.applied||view.getBackground()!=state.ours.get()){state.original=view.getBackground();state.tint=view.getBackgroundTintList();state.mode=view.getBackgroundTintMode();}
-            Drawable glass=new LiquidGlassDrawable(view,null,backdrop,blur,radius,this::renderStatus,kind);
+            boolean compact=kind==GlassSurface.SEARCH&&view.getParent() instanceof View&&SearchSurfacePolicy.capsuleHost(view.getParent().getClass().getName());
+            Drawable glass=compact?new SearchGlassDrawable(view.getResources().getDisplayMetrics().density):new LiquidGlassDrawable(view,null,backdrop,blur,radius,this::renderStatus,kind);
             int inset=kind==GlassSurface.DOCK?Math.round(8*view.getResources().getDisplayMetrics().density):0;
             Drawable ours=inset==0?glass:new InsetDrawable(glass,inset,Math.round(inset*.6f),inset,Math.round(inset*.6f));
             state.ours=new WeakReference<>(ours);background(view,ours);view.setBackgroundTintList(null);state.applied=true;state.revision=revision;
@@ -116,12 +117,9 @@ final class LauncherSurfaces {
         if(!enabled||!search){if(state!=null)restore(body,state);return;}
         applySurface(body,GlassSurface.SEARCH);state=states.get(body);
         if(body.getDrawable()!=null){state.indicatorImage=body.getDrawable();state.indicator=new WeakReference<>(body);body.setImageDrawable(null);}
-        // This ImageView is decoration only; mIndicatorContent retains text, icon and click handling.
-        if(!state.nativeBlurDisabled){
-            for(View decor:new View[]{host,body})try{XposedHelpers.callMethod(decor,"setMiBackgroundBlurMode",0);XposedHelpers.callMethod(decor,"setMiViewBlurMode",0);XposedHelpers.callMethod(decor,"clearMiBackgroundBlendColor");}catch(Throwable ignored){}
-            state.nativeBlurDisabled=true;
-            log.accept("Compact home search bound: CapsuleIndicator.mIndicatorBackground; native text/actions retained");
-        }
+        if(state.searchBlur==null)state.searchBlur=new SearchBarBlur(body,host,(v,method,args)->XposedHelpers.callMethod(v,method,args),log);
+        state.searchBlur.update(blur,Math.round(radius*body.getResources().getDisplayMetrics().density),!state.nativeBlurManaged);
+        state.nativeBlurManaged=true;
         if(host.getBackground()!=null)clearLayer(host,GlassSurface.SEARCH);
     }
     private void quickSearch(View host){
@@ -166,10 +164,11 @@ final class LauncherSurfaces {
     private void restore(View view,State state){
         if(!state.applied)return;
         if(view.getBackground()==state.ours.get()){background(view,state.original);view.setBackgroundTintList(state.tint);view.setBackgroundTintMode(state.mode);}
+        if(state.searchBlur!=null){state.searchBlur.restore();state.searchBlur=null;}
         restoreDecor(state);state.applied=false;state.ours.clear();
         ImageView indicator=state.indicator.get();if(indicator!=null&&indicator.getDrawable()==null)indicator.setImageDrawable(state.indicatorImage);
         state.indicator.clear();state.indicatorImage=null;
-        if(state.nativeBlurDisabled){state.nativeBlurDisabled=false;ViewParent parent=view.getParent();if(parent instanceof View&&SearchSurfacePolicy.capsuleHost(parent.getClass().getName()))try{XposedHelpers.callMethod(parent,"setBgBlurIfSupported",true);}catch(Throwable ignored){}}
+        if(state.nativeBlurManaged){state.nativeBlurManaged=false;ViewParent parent=view.getParent();if(parent instanceof View&&SearchSurfacePolicy.capsuleHost(parent.getClass().getName()))try{XposedHelpers.callMethod(parent,"setBgBlurIfSupported",true);}catch(Throwable ignored){}}
 log.accept("Surface restored: "+view.getClass().getName());counts();
     }
     private void renderStatus(String message){if(!message.equals(lastRenderStatus)){lastRenderStatus=message;log.accept(message);}}
