@@ -1,3 +1,9 @@
+# 0.15.0: common search material
+
+The compact search branch used SearchGlassDrawable plus SearchBarBlur's attached native plane, unlike dock/drawer. Search is now constructed by SharedGlassMaterial using the existing LiquidGlassDrawable, with capsule outline geometry. The additional body/host native planes are disabled while this material is installed, native search images are removed, and reintroduced background tint is cleared. Disable restores saved native modes and decoration; no search text or tap handlers are replaced.
+
+Native graphics tests compare material center pixels for dock/search/drawer in both material modes and check transparent/hidden output. Recorded firmware boundaries verify underlay reset, style refresh, restoration, attachment and rejection handling. Actual Xiaomi compositor pixels remain unverified. The icon renderer, shader, PNGs and dock/drawer rendering code/parameters are unchanged.
+
 # 0.14.0: native MAML widget path
 
 The prior Android-only widget guard skipped Kashi's separate MaMlHostView cards. The native path is now discovered and logged, with clock/weather metadata filtering. The existing material is drawn in the registered root's inner ElementGroup render pass, after the engine clears its canvas. Only large, noninteractive named background images or rectangle decoration is skipped. Clock hands, weather symbols, text, touch handlers, unrelated roots and flattened images are retained. Disable/detach/root replacement remove the binding without altering native element state.

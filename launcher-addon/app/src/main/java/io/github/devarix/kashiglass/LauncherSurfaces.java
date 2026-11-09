@@ -16,7 +16,6 @@ final class LauncherSurfaces {
     private static final String MARK="devarix_search_surface";
     private static final String[] TARGETS={"com.miui.home.launcher.hotseats.HotSeats","com.miui.home.launcher.SearchBarDesktopLayout","com.miui.home.launcher.SearchBarDrawerLayout","com.miui.home.launcher.search.QuickSearchBarWidgetView","com.miui.home.launcher.SearchBarContainer","com.miui.home.launcher.pageindicators.CapsuleIndicator","com.miui.home.launcher.allapps.BaseAllAppsContainerView","com.miui.home.launcher.allapps.AllAppsCategoryContainer","com.miui.home.launcher.allapps.category.AllAppsCategoryListContainer","com.miui.home.launcher.allapps.AllAppsRecyclerView","com.miui.home.launcher.allapps.search.AllAppsSearchContainer"};
     private final android.os.Handler main=new android.os.Handler(android.os.Looper.getMainLooper());
-    private final Set<View> compactViews=Collections.newSetFromMap(new WeakHashMap<>());
     private final Map<View,State> states=new WeakHashMap<>(),layers=new WeakHashMap<>();
     private final Map<View,WeakReference<View>> quickTargets=new WeakHashMap<>();
     private final Consumer<String> report,log;
@@ -104,13 +103,13 @@ final class LauncherSurfaces {
         if(state==null){state=new State();state.kind=kind;states.put(view,state);}
         if(!state.applied||state.revision!=revision||view.getBackground()!=state.ours.get()){
             if(!state.applied||view.getBackground()!=state.ours.get()){state.original=view.getBackground();state.tint=view.getBackgroundTintList();state.mode=view.getBackgroundTintMode();}
-            boolean compact=kind==GlassSurface.SEARCH&&compactViews.contains(view);
-            Drawable glass=compact?new SearchGlassDrawable(view.getResources().getDisplayMetrics().density):new LiquidGlassDrawable(view,null,backdrop,blur,radius,this::renderStatus,kind);
+            Drawable glass=SharedGlassMaterial.create(view,backdrop,blur,radius,this::renderStatus,kind);
             int inset=kind==GlassSurface.DOCK?Math.round(8*view.getResources().getDisplayMetrics().density):0;
             Drawable ours=inset==0?glass:new InsetDrawable(glass,inset,Math.round(inset*.6f),inset,Math.round(inset*.6f));
             state.ours=new WeakReference<>(ours);background(view,ours);view.setBackgroundTintList(null);state.applied=true;state.revision=revision;
             log.accept("Surface applied kind="+kind+" class="+view.getClass().getName()+" size="+view.getWidth()+"x"+view.getHeight());
         }
+        if(view.getBackgroundTintList()!=null){state.tint=view.getBackgroundTintList();state.mode=view.getBackgroundTintMode();view.setBackgroundTintList(null);}
         if(kind==GlassSurface.DOCK){
             Object value=XposedHelpers.getObjectField(view,"mBgBlurView");
             if(value instanceof View){View decor=(View)value;if(state.decor.get()!=decor){restoreDecor(state);state.decor=new WeakReference<>(decor);state.decorVisibility=decor.getVisibility();}
@@ -122,14 +121,14 @@ final class LauncherSurfaces {
     private void capsuleSearch(View host){
         Object value=XposedHelpers.getObjectField(host,"mIndicatorBackground");
         if(!(value instanceof ImageView))return;
-        ImageView body=(ImageView)value;compactViews.add(body);
+        ImageView body=(ImageView)value;
         XposedHelpers.setAdditionalInstanceField(body,MARK,true);
         State state=states.get(body);
         if(!enabled||!search){if(state!=null)restore(body,state);return;}
         applySurface(body,GlassSurface.SEARCH);state=states.get(body);
         if(body.getDrawable()!=null){state.indicatorImage=body.getDrawable();state.indicator=new WeakReference<>(body);body.setImageDrawable(null);}
         if(state.searchBlur==null)state.searchBlur=new SearchBarBlur(body,host,(v,method,args)->XposedHelpers.callMethod(v,method,args),message->{log.accept(message);lastSearchStatus=message;counts();});
-        state.searchBlur.update(blur,Math.round(radius*body.getResources().getDisplayMetrics().density),!state.nativeBlurManaged);
+        state.searchBlur.useSharedMaterial(!state.nativeBlurManaged);
         state.nativeBlurManaged=true;
         if(host.getBackground()!=null)clearLayer(host,GlassSurface.SEARCH);
     }

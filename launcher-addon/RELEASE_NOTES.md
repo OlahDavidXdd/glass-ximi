@@ -1,12 +1,20 @@
 Developer: **devarix**
 
+## 0.15.0 — Search uses the dock/drawer material
+
+The compact home search pill previously used a separate rim-only drawable and an attached native blur plane. The phone screenshot shows an opaque black pill despite working glass on nearby surfaces.
+
+Search now uses the same `LiquidGlassDrawable` material factory as the dock and drawer. The separate native body/host blur planes are disabled while glass is active, and native image/background tint updates cannot add a black search fill. Search retains capsule geometry, native text, tap actions, layout and source visibility. Native modes/artwork are restored when the option is disabled. The icon renderer, artwork, dock/drawer material parameters, animation fixes and 0.14 widget support remain unchanged.
+
+Enable **Glass search bar**, restart/reboot, and verify **Loaded hook: 0.15.0-test**. `SEARCH_MATERIAL` logs identify the common renderer and whether native underlay reset was accepted. Host tests check real drawable pixels for all three surface kinds in screen-matching/static modes, underlay reset/restore, style refresh, attachment, rejection and hidden state. Xiaomi's compositor output still needs phone confirmation.
+
 ## 0.14.0 — Native MAML clock and weather cards
 
 The earlier widget implementation only recognized Android AppWidgetHostView cards. Kashi V7.5 also renders clock/weather through `MaMlHostView` and the native MAML element tree; those widgets were never reached by that implementation.
 
 This build discovers native MAML clock/weather metadata and roots, inserts the existing Liquid Glass material inside the root's render pass, and suppresses large, noninteractive decorative background images/rectangles. Native time, weather data, hands, condition symbols, text and touch behavior are retained. Unknown or flattened images remain intact. Unrelated MAML widgets and app icons are excluded. Disabling the option stops interception without rewriting theme assets.
 
-Widget status now includes bound/rendered MAML cards and replaced background-layer counts. Logs include host metadata, pending roots, layer names/sources and replacement decisions. Enable **Glass clock & weather widgets**, restart/reboot, and confirm **Loaded hook: 0.14.0-test**. If a card still looks stock, export the new `MAML host`, `MAML layer` and `MAML glass rendered` lines.
+Widget status now includes bound/rendered MAML cards and replaced background-layer counts. Logs include host metadata, pending roots, layer names/sources and replacement decisions. Enable **Glass clock & weather widgets**, restart/reboot, and confirm **Loaded hook: 0.15.0-test**. If a card still looks stock, export the new `MAML host`, `MAML layer` and `MAML glass rendered` lines.
 
 The API boundary was checked against Kashi V7.5's APK. Android host tests execute production material drawing, selection, binding, root replacement and disable/detach logic using fixtures for MAML's getter/field boundary. They do not execute the actual MAML engine or LSPosed hook dispatch; the appearance of your specific stock cards still needs phone verification. Approved icon renderers and PNG assets are unchanged.
 

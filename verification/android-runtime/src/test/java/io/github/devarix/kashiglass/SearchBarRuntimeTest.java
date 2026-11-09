@@ -69,4 +69,39 @@ public class SearchBarRuntimeTest {
     @Test public void hiddenSearchDecorationDrawsNoPixels(){
         SearchGlassDrawable rim=new SearchGlassDrawable(1);rim.setBounds(0,0,160,48);rim.setAlpha(0);Bitmap result=Bitmap.createBitmap(160,48,Bitmap.Config.ARGB_8888);rim.draw(new Canvas(result));assertEquals(0,Color.alpha(result.getPixel(80,0)));
     }
+    @Test public void sharedMaterialDisablesBothNativeUnderlaysWithoutTouchingText(){
+        new SearchBarBlur(body,host,calls,messages::add).useSharedMaterial(true);
+        for(View v:List.of(body,host)){assertEquals(0,(int)calls.values.get(v).get("MiBackgroundBlurMode"));assertEquals(0,(int)calls.values.get(v).get("MiViewBlurMode"));}
+        assertTrue(calls.enabledTargets.isEmpty());assertEquals("Search",label.getText().toString());assertTrue(label.isClickable());assertFalse(label.getClipToOutline());
+    }
+    @Test public void sharedMaterialDeduplicatesAndReassertsAfterNativeStyleRefresh(){
+        SearchBarBlur material=new SearchBarBlur(body,host,calls,messages::add);material.useSharedMaterial(true);int count=calls.count;material.useSharedMaterial(false);assertEquals(count,calls.count);
+        calls.values.get(body).put("MiViewBlurMode",3);material.useSharedMaterial(true);assertEquals(0,(int)calls.values.get(body).get("MiViewBlurMode"));
+    }
+    @Test public void sharedMaterialRestoresOriginalNativeModesOnDisable(){
+        ViewOutlineProvider outline=body.getOutlineProvider();SearchBarBlur material=new SearchBarBlur(body,host,calls,messages::add);material.useSharedMaterial(true);material.restore();
+        assertEquals(2,(int)calls.values.get(body).get("MiBackgroundBlurMode"));assertEquals(3,(int)calls.values.get(body).get("MiViewBlurMode"));assertEquals(4,(int)calls.values.get(host).get("MiBackgroundBlurMode"));assertEquals(5,(int)calls.values.get(host).get("MiViewBlurMode"));assertSame(outline,body.getOutlineProvider());
+    }
+    @Test public void rejectedUnderlayResetIsReportedWithoutPerFrameRetries(){
+        calls.reject=true;SearchBarBlur material=new SearchBarBlur(body,host,calls,messages::add);material.useSharedMaterial(true);int count=calls.count;material.useSharedMaterial(false);assertEquals(count,calls.count);assertTrue(messages.stream().anyMatch(s->s.contains("underlay reset unavailable")));assertTrue(calls.enabledTargets.isEmpty());
+    }
+    private GlassBackdrop noCapture(){return new GlassBackdrop(){public boolean isAvailable(){return false;}public boolean draw(Canvas c,View v,Rect r,int margin){return false;}};}
+    @Test public void searchDockAndDrawerUseTheSameMaterialInBothModes(){
+        for(boolean screenMatching:new boolean[]{true,false}){
+            LiquidGlassDrawable.configure(null,null,true,screenMatching);Integer reference=null;
+            for(int kind:new int[]{GlassSurface.DOCK,GlassSurface.SEARCH,GlassSurface.DRAWER}){
+                android.graphics.drawable.Drawable material=SharedGlassMaterial.create(body,noCapture(),false,24,messages::add,kind);assertTrue(material instanceof LiquidGlassDrawable);material.setBounds(0,0,160,48);
+                Bitmap pixels=Bitmap.createBitmap(160,48,Bitmap.Config.ARGB_8888);material.draw(new Canvas(pixels));int center=pixels.getPixel(80,24);
+                assertTrue("opaque search fill",Color.alpha(center)<100);if(reference==null)reference=center;else assertEquals((int)reference,center);
+            }
+        }
+    }
+    @Test public void sharedHiddenMaterialDrawsNoPixels(){
+        LiquidGlassDrawable.configure(null,null,true,true);android.graphics.drawable.Drawable material=SharedGlassMaterial.create(body,noCapture(),false,24,messages::add,GlassSurface.SEARCH);material.setBounds(0,0,160,48);material.setAlpha(0);
+        Bitmap pixels=Bitmap.createBitmap(160,48,Bitmap.Config.ARGB_8888);material.draw(new Canvas(pixels));for(int y=0;y<48;y++)for(int x=0;x<160;x++)assertEquals(0,Color.alpha(pixels.getPixel(x,y)));
+    }
+    @Test public void sharedMaterialWaitsUntilTheRealBodyIsAttached(){
+        host.removeView(body);SearchBarBlur material=new SearchBarBlur(body,host,calls,messages::add);material.useSharedMaterial(true);assertEquals(0,calls.count);host.addView(body,new FrameLayout.LayoutParams(160,48));body.layout(0,0,160,48);material.useSharedMaterial(false);assertEquals(0,(int)calls.values.get(body).get("MiViewBlurMode"));
+    }
+
 }

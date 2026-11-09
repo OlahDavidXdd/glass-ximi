@@ -9,7 +9,7 @@ cases=[]
 for file in reports:
  for case in ET.parse(file).getroot().findall('testcase'):
   cases.append({'class':case.get('classname'),'name':case.get('name'),'passed':case.find('failure') is None and case.find('error') is None and case.find('skipped') is None})
-assert len(cases)==100,(len(cases),cases)
+assert len(cases)==114,(len(cases),cases)
 assert all(c['passed'] for c in cases),cases
 production=root.parents[1]/'launcher-addon/app/src/main/java/io/github/devarix/kashiglass'
 release=json.loads((root/'fixtures/current-release-provenance.json').read_text())
@@ -32,7 +32,7 @@ assert len(result['native_canvas_outputs'])==2,'Missing native Canvas output'
 (root/'results').mkdir(exist_ok=True)
 (root/'results/SUMMARY.md').write_text('''# Phone-free Android runtime verification
 
-- **100 / 100 current-code tests passed** on Android APIs 33 and 35, including native graphics, widget restoration and provider protocol cases.
+- **114 / 114 current-code tests passed** on Android APIs 33 and 35, including native graphics, widget restoration and provider protocol cases.
 - **4 expected failures reproduced** in released 0.9.0 source: shared Frosted pixels and cloning after recycled native pixels, on both APIs.
 - Visual renderer references remain unchanged: **'''+str(result['visual_renderer_reference_match'])+'''**.
 - Native MAML selection/binding/material drawing uses fixtures for verified native getters/fields; the real MAML engine and Xposed callbacks are not executed.
