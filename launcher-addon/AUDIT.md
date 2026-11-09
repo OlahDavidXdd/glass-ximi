@@ -1,3 +1,9 @@
+# 0.17.0: page pill and live drawer material
+
+Kashi's native page dots use LauncherIndicator.mScreenIndicator separately from CapsuleIndicator's Search body. PageIndicatorGlass decorates only that view's background, shares the approved material/underlay helper and retains all dot children and native visibility/actions. Native target/style replacement, disable and detach restore original backgrounds/tints/modes.
+
+Drawer ImageView binding now covers bitmap/resource/Icon setters and verifies live material before painting. LiveGlassMotion invalidates moved/scaled/resized icon views, including image-matrix changes, without perpetual redraws. It uses weak ownership and removes observers on detach. Artwork, renderer parameters and source animation guards are retained. Android tests exercise real views and production state/observation helpers; Xposed hook dispatch, Xiaomi blur pixels and fling performance remain unverified.
+
 # 0.16.0: widget material and source-return guards
 
 Both widget paths construct their material via SharedGlassMaterial and reset native underlays with the approved search helper, preserving the renderer parameters. Native underlay modes are restored on disable/detach/root replacement. Pending Android widget resets activate after attachment and deduplicate unchanged reapplication. Existing separation rules continue to retain flattened/unknown live content.

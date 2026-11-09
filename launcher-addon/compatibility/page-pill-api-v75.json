@@ -1,0 +1,62 @@
+{
+  "scope": "Kashi V7.5 read-only API metadata inspection; actual hook dispatch not executed",
+  "apk_sha256": "d070c565b397d470b3c239ba5fbd57d0cbab2c5ee78cedb5c012773ee73228a1",
+  "classes": {
+    "Lcom/miui/home/launcher/pageindicators/LauncherIndicator;": {
+      "super": "Lcom/miui/home/launcher/ScreenView$SeekBarIndicator;",
+      "fields": [
+        [
+          "mCapsuleIndicator",
+          "Lcom/miui/home/launcher/pageindicators/CapsuleIndicator;"
+        ],
+        [
+          "mScreenIndicator",
+          "Landroid/view/View;"
+        ]
+      ],
+      "methods": [
+        {
+          "name": "getCurrentIndicator",
+          "descriptor": "()Landroid/view/View;"
+        },
+        {
+          "name": "refreshCapsuleIndicatorType",
+          "descriptor": "()V"
+        },
+        {
+          "name": "refreshIndicator",
+          "descriptor": "()V"
+        },
+        {
+          "name": "refreshIndicator",
+          "descriptor": "(Z)V"
+        },
+        {
+          "name": "refreshIndicator",
+          "descriptor": "(Z Z)V"
+        }
+      ]
+    },
+    "Lcom/miui/home/launcher/pageindicators/MultiSeekBarIndicator;": {
+      "super": "Lcom/miui/home/launcher/pageindicators/LauncherIndicator;",
+      "fields": [],
+      "methods": []
+    },
+    "Lcom/miui/home/launcher/ScreenView$IndicatorView;": {
+      "super": "Landroid/widget/FrameLayout;",
+      "fields": [
+        [
+          "mScreenIndicator",
+          "Lcom/miui/home/launcher/ScreenView;"
+        ]
+      ],
+      "methods": [
+        {
+          "name": "getScreenIndicator",
+          "descriptor": "()Lcom/miui/home/launcher/ScreenView;"
+        }
+      ]
+    }
+  },
+  "page_content": "IndicatorView creates its own child ScreenView; this is the native dot strip, not the home workspace."
+}

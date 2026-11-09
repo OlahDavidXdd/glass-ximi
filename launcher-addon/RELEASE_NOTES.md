@@ -1,12 +1,20 @@
 Developer: **devarix**
 
+## 0.17.0 — Page-indicator pill and live drawer icons
+
+The approved Search material is retained. The native LauncherIndicator page-dot view now receives the same capsule material and underlay reset as Search. Its child dots, current-page selection, native show/hide transitions, accessibility and tap actions are retained. The setting is named **Glass search & page pill** and uses the existing search preference. Native style refresh, target replacement, disable and detach restore/reapply the background without rewriting page content.
+
+Drawer icon binding now handles ImageView bitmap, resource and Icon setters as well as direct drawable assignment. The ImageView paint boundary verifies the live material; a faded bitmap is treated as artwork rather than an explicit clear. Live liquid drawables invalidate when their position, scale, geometry or image matrix changes during scrolling/recycling. Unchanged/hidden/inactive icons do not request continuous frames, and detached views stop observing. Native source visibility/animation guards and the approved material parameters/artwork remain unchanged.
+
+Restart/reboot and verify **Loaded hook: 0.17.0-test**. Page diagnostics use `PAGE_MATERIAL`. Android host tests cover page content/selection preservation, target/style changes, padding, attachment, restoration and live-motion invalidation. Actual Kashi mode switching, GPU blur and drawer fling frame pacing still need phone confirmation; no full-launcher emulation is claimed.
+
 ## 0.16.0 — Widget material and return-to-home source protection
 
 The search material approved on the phone is retained. Both Android and native MAML widget backgrounds now go through the same SharedGlassMaterial factory and native-underlay reset used by search; widget outline geometry and live content are preserved. Pending Android widget underlays activate after attachment, without repeating requests on unchanged frames. Opaque/flattened provider content still requires the existing per-card background detection and is not blindly erased.
 
 The phone report identifies stock artwork returning on the home-screen source after exiting an app. This build intercepts native TextView compound-drawable assignment for launcher icons, verifies the backing drawable at native getter access and repairs the source immediately before TextView paints. These guards supplement the existing pre-draw and animation input protections, so late source restores do not have to wait for another pre-draw pass. Explicit clears, transparent masks, hidden source state, fade alpha and unrelated drawable slots remain native-controlled. Search, icon material parameters, artwork and animation timing are unchanged.
 
-Install, restart/reboot, and verify **Loaded hook: 0.16.0-test**. Logs include `Protected source drawing slot` when a native restore was replaced. Android host regressions repeat 500 source restores, late slot writes and backing-field replacements on each API. The actual Kashi/LSPosed dispatch and physical exit animation still need phone confirmation.
+Install, restart/reboot, and verify **Loaded hook: 0.17.0-test**. Logs include `Protected source drawing slot` when a native restore was replaced. Android host regressions repeat 500 source restores, late slot writes and backing-field replacements on each API. The actual Kashi/LSPosed dispatch and physical exit animation still need phone confirmation.
 
 ## 0.15.0 — Search uses the dock/drawer material
 
@@ -14,7 +22,7 @@ The compact home search pill previously used a separate rim-only drawable and an
 
 Search now uses the same `LiquidGlassDrawable` material factory as the dock and drawer. The separate native body/host blur planes are disabled while glass is active, and native image/background tint updates cannot add a black search fill. Search retains capsule geometry, native text, tap actions, layout and source visibility. Native modes/artwork are restored when the option is disabled. The icon renderer, artwork, dock/drawer material parameters, animation fixes and 0.14 widget support remain unchanged.
 
-Enable **Glass search bar**, restart/reboot, and verify **Loaded hook: 0.16.0-test**. `SEARCH_MATERIAL` logs identify the common renderer and whether native underlay reset was accepted. Host tests check real drawable pixels for all three surface kinds in screen-matching/static modes, underlay reset/restore, style refresh, attachment, rejection and hidden state. Xiaomi's compositor output still needs phone confirmation.
+Enable **Glass search bar**, restart/reboot, and verify **Loaded hook: 0.17.0-test**. `SEARCH_MATERIAL` logs identify the common renderer and whether native underlay reset was accepted. Host tests check real drawable pixels for all three surface kinds in screen-matching/static modes, underlay reset/restore, style refresh, attachment, rejection and hidden state. Xiaomi's compositor output still needs phone confirmation.
 
 ## 0.14.0 — Native MAML clock and weather cards
 
@@ -22,7 +30,7 @@ The earlier widget implementation only recognized Android AppWidgetHostView card
 
 This build discovers native MAML clock/weather metadata and roots, inserts the existing Liquid Glass material inside the root's render pass, and suppresses large, noninteractive decorative background images/rectangles. Native time, weather data, hands, condition symbols, text and touch behavior are retained. Unknown or flattened images remain intact. Unrelated MAML widgets and app icons are excluded. Disabling the option stops interception without rewriting theme assets.
 
-Widget status now includes bound/rendered MAML cards and replaced background-layer counts. Logs include host metadata, pending roots, layer names/sources and replacement decisions. Enable **Glass clock & weather widgets**, restart/reboot, and confirm **Loaded hook: 0.16.0-test**. If a card still looks stock, export the new `MAML host`, `MAML layer` and `MAML glass rendered` lines.
+Widget status now includes bound/rendered MAML cards and replaced background-layer counts. Logs include host metadata, pending roots, layer names/sources and replacement decisions. Enable **Glass clock & weather widgets**, restart/reboot, and confirm **Loaded hook: 0.17.0-test**. If a card still looks stock, export the new `MAML host`, `MAML layer` and `MAML glass rendered` lines.
 
 The API boundary was checked against Kashi V7.5's APK. Android host tests execute production material drawing, selection, binding, root replacement and disable/detach logic using fixtures for MAML's getter/field boundary. They do not execute the actual MAML engine or LSPosed hook dispatch; the appearance of your specific stock cards still needs phone verification. Approved icon renderers and PNG assets are unchanged.
 

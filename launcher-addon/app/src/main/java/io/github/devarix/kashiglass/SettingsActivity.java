@@ -32,7 +32,7 @@ public final class SettingsActivity extends Activity {
         toggle(page,"White center symbols","White symbols with fine detail retained. Turn off to keep the original silver shading.","white_symbols");
         toggle(page,"Automatic glass icons","Creates a silver foreground and glass finish for apps without a bundled mapping. Bundled artwork always takes priority.","automatic");
         toggle(page,"Glass dock","Rounded gray glass behind the dock icons. Uses the same lens, reflections and blur strength as Liquid Glass icons.","dock_glass");
-        toggle(page,"Glass search bar","The compact home search pill requests native blur on its attached background view, independently of your icon material. Text and taps are retained. Firmware support is logged.","search_glass");
+        toggle(page,"Glass search & page pill","Uses the shared glass material for Search and the page-indicator pill. Native dots, page selection, text and taps are retained.","search_glass");
         toggle(page,"Glass app drawer","Frosted gray sheet behind the app grid and search results. Keeps scrolling, categories and search input.","drawer_glass");
         toggle(page,"Glass clock & weather widgets","Styles separate Android and native MAML clock/weather card backgrounds while retaining live content and taps. Flattened artwork is retained; widget support is logged.","widget_glass");
         blurSwitch=toggle(page,"Backdrop blur","Screen matching uses a dedicated native backdrop node. Static-wallpaper lens mode uses the QWEA0 shader.","blur");

@@ -47,7 +47,7 @@ The small home **Search** capsule is `pageindicators.CapsuleIndicator`, with an 
 
 Some providers flatten their entire card into a single image/canvas. Their background cannot be separated from live content by this approach, so opaque artwork is retained and can cover the glass. Native MAML clock/weather support is added in 0.14.0: recognized roots get the same material inside their native render pass, with large decorative background images/rectangles suppressed. Unknown or flattened images remain intact. Diagnostic logs identify recognized providers, content classes/resource IDs and the number of removed decorative layers; the status counts applied glass cards and inseparable/pending cards. Counts measure bindings, not visual success.
 
-Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.16.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
+Install, leave **Glass search bar** and **Glass clock & weather widgets** enabled, restart/reboot, and check **Loaded hook: 0.17.0-test — matches app**. This update leaves your icon settings unchanged. Search/widget appearance is not physically verified yet.
 
 ## Screen matching and native source visibility (0.8.0)
 
@@ -178,3 +178,5 @@ Lens shader: **pandadog / QWEA0**, MIT; see `app/src/main/assets/licenses/Liquid
 New adapter code is MIT licensed. Artwork is not relicensed by that code license: base icon symbols are from Guofeng 26 Lite Edition by **一凡UI**, with additions from [Simple Icons](https://github.com/simple-icons/simple-icons), [Shizuku](https://github.com/RikkaApps/Shizuku), [MicroG RE](https://github.com/MorpheApp/MicroG-RE), and custom glass assets.
 
 In 0.15.0, compact home search uses the same LiquidGlassDrawable factory as dock/drawer. Its competing native blur plane is neutralized while glass is enabled, with original modes restored on disable. The `SEARCH_MATERIAL` diagnostic describes that path; physical rendering remains unverified.
+
+Version 0.17 extends the search toggle to native page dots in a shared glass pill. Drawer ImageView bitmap/resource/Icon rebinding and paint boundaries retain live liquid drawables; motion-aware invalidation refreshes them during scrolling without a permanent timer. Native dot content/actions and icon source visibility remain intact.

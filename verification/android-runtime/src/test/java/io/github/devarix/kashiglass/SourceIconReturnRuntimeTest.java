@@ -27,6 +27,7 @@ public class SourceIconReturnRuntimeTest {
     @Test public void explicitClearAndTransparentPlaceholdersSurviveHiddenAndVisibleStates(){
         for(boolean hidden:new boolean[]{true,false}){assertNull(SourceIconReturn.replacement(null,owned,mask,hidden));Drawable clear=new ColorDrawable(Color.TRANSPARENT);assertSame(clear,SourceIconReturn.replacement(clear,owned,mask,hidden));}
     }
+    @Test public void fadedBitmapIsLiveArtworkAndNotAnExplicitClear(){stock.setAlpha(0);assertFalse(SourceIconReturn.isClear(stock));assertTrue(SourceIconReturn.isClear(null));assertTrue(SourceIconReturn.isClear(mask));assertTrue(SourceIconReturn.isClear(new BitmapDrawable(source.getResources(),(Bitmap)null)));}
     @Test public void missingArtworkKeepsTheNativeSource(){assertSame(stock,SourceIconReturn.replacement(stock,null,mask,false));}
     @Test public void repairsPreserveAlphaAndOtherDrawableSlots(){
         Drawable left=bitmap(Color.GREEN),right=bitmap(Color.BLUE),bottom=bitmap(Color.YELLOW);owned.setAlpha(0);source.setCompoundDrawables(left,stock,right,bottom);

@@ -87,13 +87,26 @@ public final class GlassHook implements IXposedHookLoadPackage {
             @Override protected void beforeHookedMethod(MethodHookParam p){
                 if(!(p.thisObject instanceof ImageView)||!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
                 View view=(View)p.thisObject;State state=state(view);
-                Drawable incoming=(Drawable)p.args[0];if(incoming==null||incoming.getOpacity()==android.graphics.PixelFormat.TRANSPARENT){state.visibility.hidden=true;state.applied=false;return;}
+                Drawable incoming=(Drawable)p.args[0];if(SourceIconReturn.isClear(incoming)){state.visibility.hidden=true;state.applied=false;return;}
                 state.visibility.hidden=false;state.visibility.alpha=incoming.getAlpha();state.resolveCached=false;rememberCurrent(view,state);captureOriginal(view,state,(Drawable)p.args[0]);state.applied=false;
                 String pkg=resolve(view);Bitmap bitmap=enabled?ICONS.get(assetKey(pkg)):null;
                 if(bitmap!=null&&!bitmap.isRecycled()){p.args[0]=makeDrawable(view,bitmap);state.binding.installed(assetKey(pkg),bitmap,(Drawable)p.args[0]);state.applied=true;state.packageName=pkg;}
             }
             @Override protected void afterHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()&&isIcon(p.thisObject))apply((View)p.thisObject);}
         });
+        XposedHelpers.findAndHookMethod(ImageView.class,"onDraw",Canvas.class,new XC_MethodHook(){
+            @Override protected void beforeHookedMethod(MethodHookParam p){if(enabled&&!INTERNAL.get()&&isIcon(p.thisObject)&&Looper.myLooper()==Looper.getMainLooper())apply((View)p.thisObject);}
+        });
+        XC_MethodHook imageRebind=new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){
+            if(!enabled||INTERNAL.get()||!isIcon(p.thisObject)||Looper.myLooper()!=Looper.getMainLooper())return;
+            ImageView view=(ImageView)p.thisObject;Drawable drawable=view.getDrawable();State state=state(view);
+            if(SourceIconReturn.isClear(drawable)){state.visibility.hidden=true;state.applied=false;return;}
+            if(!state.binding.owns(drawable)){state.visibility.hidden=false;state.visibility.alpha=drawable.getAlpha();state.resolveCached=false;rememberCurrent(view,state);captureOriginal(view,state,drawable);state.applied=false;}
+            apply(view);
+        }};
+        XposedHelpers.findAndHookMethod(ImageView.class,"setImageBitmap",Bitmap.class,imageRebind);
+        XposedHelpers.findAndHookMethod(ImageView.class,"setImageResource",int.class,imageRebind);
+        XposedHelpers.findAndHookMethod(ImageView.class,"setImageIcon",Icon.class,imageRebind);
         for(String method:new String[]{"setCompoundDrawables","setCompoundDrawablesRelative"}){
             XposedHelpers.findAndHookMethod(android.widget.TextView.class,method,Drawable.class,Drawable.class,Drawable.class,Drawable.class,new XC_MethodHook(){
                 @Override protected void beforeHookedMethod(MethodHookParam p){
@@ -431,13 +444,14 @@ public final class GlassHook implements IXposedHookLoadPackage {
             debug("ICON_REPAIRED","Verified artwork restored: "+pkg);
             if(!screenMatch)warmTransition(view,pkg);
         }
-        if(!state.listener){state.listener=true;new IconIntegrityWatcher(view,GlassHook::verifyLiveIcon);view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
+        if(!state.listener){state.listener=true;new IconIntegrityWatcher(view,GlassHook::verifyLiveIcon);new LiveGlassMotion(view,GlassHook::isLiveGlass);view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
             public void onViewAttachedToWindow(View v){MAIN.post(()->apply(v));}
             public void onViewDetachedFromWindow(View v){State s=STATES.get(v);if(s!=null)clearBlur(v,s);}
         });}
         if(state.applied&&!screenMatch)warmTransition(view,pkg);
         if(!screenMatch&&blur&&view instanceof ImageView&&view.isAttachedToWindow()&&(!"liquid".equals(style)||!wallpaper.isAvailable()))nativeBlur(view,state);else clearBlur(view,state);
     }
+    private static boolean isLiveGlass(View view){State state=STATES.get(view);Drawable drawable=getIconDrawable(view);return enabled&&state!=null&&state.applied&&!state.visibility.hidden&&drawable instanceof LiquidGlassDrawable&&drawable.getAlpha()>0;}
     private static void verifyLiveIcon(View view){
         if(!enabled||INTERNAL.get())return;State state=STATES.get(view);
         if(state==null||!state.applied)return;
