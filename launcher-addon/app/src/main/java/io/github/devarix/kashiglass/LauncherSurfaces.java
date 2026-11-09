@@ -124,7 +124,8 @@ final class LauncherSurfaces {
     }
     private void pageIndicator(View host,boolean refreshed){
         Object target=XposedHelpers.getObjectField(host,"mScreenIndicator");
-        pages.bind(host,target instanceof View?(View)target:null,refreshed);counts();
+        Object reference=XposedHelpers.getObjectField(host,"mCapsuleIndicator");
+        pages.bind(host,target instanceof View?(View)target:null,reference instanceof View?(View)reference:null,refreshed);counts();
     }
     private void capsuleSearch(View host){
         Object value=XposedHelpers.getObjectField(host,"mIndicatorBackground");

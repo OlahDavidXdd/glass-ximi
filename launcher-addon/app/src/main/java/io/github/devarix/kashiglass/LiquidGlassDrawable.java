@@ -30,7 +30,7 @@ final class LiquidGlassDrawable extends Drawable {
     private final RenderNode node=new RenderNode("devarix-QWEA0-Lens");
     private final Paint foreground=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
     private final Paint symbol=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
-    private final boolean white=whiteSymbols,screenMatching=matchScreen;
+    private final boolean white=whiteSymbols,screenMatching;
     private final NativeScreenBackdrop nativeBackdrop=new NativeScreenBackdrop();
     private final Paint rim=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect rimBounds=new Rect();
@@ -54,7 +54,8 @@ final class LiquidGlassDrawable extends Drawable {
     private int lastW,lastH,lastMargin;
     private float lastBlur=-1,lastPress=-1;
     LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status){this(view,glyph,backdrop,blur,strength,status,GlassSurface.ICON);}
-    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status,int surface){this.surface=surface;this.owner=new WeakReference<>(view);this.glyph=glyph;this.backdrop=backdrop;this.blur=blur;this.strength=strength;this.status=status;symbol.setColorFilter(white?WHITE:null);}
+    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status,int surface){this(view,glyph,backdrop,blur,strength,status,surface,matchScreen);}
+    LiquidGlassDrawable(View view,Bitmap glyph,GlassBackdrop backdrop,boolean blur,int strength,Consumer<String> status,int surface,boolean liveScreen){this.surface=surface;this.screenMatching=liveScreen;this.owner=new WeakReference<>(view);this.glyph=glyph;this.backdrop=backdrop;this.blur=blur;this.strength=strength;this.status=status;symbol.setColorFilter(white?WHITE:null);}
     @Override public void draw(Canvas canvas){
         Rect b=getBounds();if(b.isEmpty()||alpha==0)return;View view=owner.get();if(view==null)return;
         if(!canvas.isHardwareAccelerated()&&!reportedSoftware){reportedSoftware=true;status.accept("QWEA0 lens unavailable on a software canvas. Static fallback only.");}

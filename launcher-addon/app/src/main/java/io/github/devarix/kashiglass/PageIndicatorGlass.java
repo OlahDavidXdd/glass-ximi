@@ -14,7 +14,8 @@ final class PageIndicatorGlass {
         WeakReference<View> target=new WeakReference<>(null);
         Drawable original;ColorStateList tint;PorterDuff.Mode mode;
         WeakReference<Drawable> ours=new WeakReference<>(null);SearchBarBlur underlay;
-        int revision=-1;boolean applied;
+        final PagePillLayout layout=new PagePillLayout();WeakReference<View> reference=new WeakReference<>(null);
+        String geometry="";int revision=-1;boolean applied;
     }
     private final Map<View,Binding> bindings=new WeakHashMap<>();
     private final SearchBarBlur.Calls calls;
@@ -23,13 +24,15 @@ final class PageIndicatorGlass {
     PageIndicatorGlass(SearchBarBlur.Calls calls,Consumer<String> log){this.calls=calls;this.log=log;}
     void configure(boolean enabled,boolean blur,int radius,GlassBackdrop backdrop){
         this.enabled=enabled;this.blur=blur;this.radius=radius;this.backdrop=backdrop;revision++;
-        for(var entry:new ArrayList<>(bindings.entrySet()))bind(entry.getKey(),entry.getValue().target.get(),false);
+        for(var entry:new ArrayList<>(bindings.entrySet()))bind(entry.getKey(),entry.getValue().target.get(),entry.getValue().reference.get(),false);
     }
-    void bind(View host,View target,boolean nativeStyleChanged){
+    void bind(View host,View target,boolean nativeStyleChanged){bind(host,target,null,nativeStyleChanged);}
+    void bind(View host,View target,View searchReference,boolean nativeStyleChanged){
         Binding binding=bindings.get(host);
         if(binding==null){if(!enabled||target==null)return;binding=new Binding();bindings.put(host,binding);}
         if(binding.target.get()!=target){restore(binding);binding.target=new WeakReference<>(target);}
         if(!enabled||backdrop==null||target==null){restore(binding);return;}
+        binding.reference=new WeakReference<>(searchReference);if(searchReference!=null){binding.layout.match(target,searchReference);String geometry=binding.layout.description();if(!geometry.equals(binding.geometry)){binding.geometry=geometry;log.accept("PAGE_GEOMETRY matches Search: "+geometry);}}
         if(!binding.applied||binding.revision!=revision||target.getBackground()!=binding.ours.get()){
             if(!binding.applied||target.getBackground()!=binding.ours.get()){binding.original=target.getBackground();binding.tint=target.getBackgroundTintList();binding.mode=target.getBackgroundTintMode();}
             Drawable material=SharedGlassMaterial.create(target,backdrop,blur,radius,log,GlassSurface.SEARCH);
@@ -43,7 +46,7 @@ final class PageIndicatorGlass {
     void detach(View host){Binding binding=bindings.get(host);if(binding!=null)restore(binding);}
     int visibleCount(){int count=0;for(Binding b:bindings.values()){View target=b.target.get();if(b.applied&&target!=null&&target.isShown())count++;}return count;}
     private void restore(Binding binding){
-        View target=binding.target.get();if(binding.underlay!=null){binding.underlay.restore();binding.underlay=null;}
+        binding.layout.restore();View target=binding.target.get();if(binding.underlay!=null){binding.underlay.restore();binding.underlay=null;}
         if(binding.applied&&target!=null&&target.getBackground()==binding.ours.get()){background(target,binding.original);target.setBackgroundTintList(binding.tint);target.setBackgroundTintMode(binding.mode);}
         binding.applied=false;binding.ours.clear();binding.original=null;binding.tint=null;
     }

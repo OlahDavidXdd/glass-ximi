@@ -35,6 +35,12 @@ final class LauncherWidgets {
     LauncherWidgets(Consumer<String> report,Consumer<String> log){this(report,log,(view,method,args)->XposedHelpers.callMethod(view,method,args));}
     LauncherWidgets(Consumer<String> report,Consumer<String> log,SearchBarBlur.Calls calls){this.report=report;this.log=log;this.underlayCalls=calls;this.maml=new MamlWidgetGlass(log,message->counts(),calls);}
     void install(ClassLoader loader){
+        Class<?> legacy=XposedHelpers.findClassIfExists("com.miui.maml.MiAdvancedView",loader);
+        log.accept("Legacy clock MAML view found="+(legacy!=null));
+        if(legacy!=null){
+            XposedBridge.hookAllConstructors(legacy,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){track((View)p.thisObject);}});
+            XposedBridge.hookAllMethods(legacy,"init",new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam p){View view=(View)p.thisObject;view.post(()->apply(view));}});
+        }
         Class<?> mamlHost=XposedHelpers.findClassIfExists("com.miui.home.launcher.maml.MaMlHostView",loader);
         log.accept("MAML widget host found="+(mamlHost!=null));
         if(mamlHost!=null){
@@ -108,9 +114,10 @@ final class LauncherWidgets {
             boolean layered=root instanceof ViewGroup;
             int removed=0;
             Set<View> touched=Collections.newSetFromMap(new IdentityHashMap<>());
-            if(layered){replace(view,root,true,false);touched.add(root);removed=clearDecoration(view,root,root,0,touched);}
+            boolean separable=!(root instanceof ImageView);
+            if(separable){replace(view,root,true,false);touched.add(root);if(layered)removed=clearDecoration(view,root,root,0,touched);}
             for(View changed:new ArrayList<>(changes.keySet())){Change change=changes.get(changed);if(change!=null&&change.host.get()==view&&!touched.contains(changed))restore(changed);}
-            String diagnostic="Widget provider="+provider+" root="+root.getClass().getName()+" id="+id(root)+" size="+root.getWidth()+"x"+root.getHeight()+" decorative_layers="+removed+(layered?"; live views retained":"; flattened content retained, background cannot be separated safely");
+            String diagnostic="Widget provider="+provider+" root="+root.getClass().getName()+" id="+id(root)+" size="+root.getWidth()+"x"+root.getHeight()+" decorative_layers="+removed+(separable?layered?"; live views retained":"; glass background, native Canvas content retained":"; flattened content retained, background cannot be separated safely");
             if(!diagnostic.equals(state.diagnostic)){state.diagnostic=diagnostic;log.accept(diagnostic);}
         }catch(Throwable e){log.accept("Widget styling error: "+e.getClass().getSimpleName());restoreHost(view);}
         finally{applying=false;counts();}

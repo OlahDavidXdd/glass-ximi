@@ -29,6 +29,11 @@ public class WidgetRuntimeTest {
         activity.setContentView(host);widgets.track(host);assertTrue(card.getBackground() instanceof LiquidGlassDrawable);assertNull(background.getDrawable());
     }
     @After public void teardown(){activity.finish();}
+    static class ClockCard extends View {int draws;ClockCard(Context c){super(c);}@Override protected void onDraw(Canvas canvas){draws++;Paint hand=new Paint();hand.setColor(Color.WHITE);canvas.drawLine(150,150,150,60,hand);}}
+    @Test public void separateClockCanvasBackgroundBecomesGlassWithoutReplacingItsForeground(){
+        host.info.provider=new ComponentName("com.android.deskclock","AnalogClockProvider");host.removeAllViews();ClockCard clock=new ClockCard(host.getContext());Drawable blue=new ColorDrawable(Color.BLUE);clock.setBackground(blue);host.addView(clock,new FrameLayout.LayoutParams(300,300));clock.layout(0,0,300,300);widgets.apply(host);assertTrue(clock.getBackground() instanceof LiquidGlassDrawable);
+        Bitmap pixels=Bitmap.createBitmap(300,300,Bitmap.Config.ARGB_8888);clock.draw(new Canvas(pixels));assertTrue(clock.draws>0);widgets.configure(false,false,24,null);assertSame(blue,clock.getBackground());
+    }
     @Test public void attachmentActivatesPendingUnderlayWithoutRepeatingRequests(){
         assertTrue(card.isAttachedToWindow());nativeCalls.clear();widgets.apply(host);assertTrue(nativeCalls.contains("setMiViewBlurMode"));
         int count=nativeCalls.size();widgets.apply(host);assertEquals(count,nativeCalls.size());

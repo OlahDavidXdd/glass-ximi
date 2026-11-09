@@ -1,4 +1,4 @@
-**Latest launcher test:** [0.17.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.17.0-test) · Glass page-indicator pill compatibility and motion-aware live drawer icons; approved search/artwork retained. [Build audit](launcher-addon/AUDIT.md) · [Signing/update limits](launcher-addon/SIGNING.md). Restart/reboot and verify **Loaded hook: 0.17.0-test**.
+**Latest launcher test:** [0.18.0 APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.18.0-test) · Search-sized page pill, live widget policy, clock coverage and native return-cleanup refresh/diagnostics. [Build audit](launcher-addon/AUDIT.md) · [Signing/update limits](launcher-addon/SIGNING.md). Restart/reboot and verify **Loaded hook: 0.18.0-test**.
 
 **Phone-free verification:** [Android native-graphics test suite](verification/android-runtime) · [Run/results](https://github.com/OlahDavidXdd/glass-ximi/actions/workflows/verify-android-runtime.yml). Verifies snapshot pixel ownership, transparency and fades on API 33/35; HyperOS/LSPosed end-to-end animations remain outside this host runtime.
 

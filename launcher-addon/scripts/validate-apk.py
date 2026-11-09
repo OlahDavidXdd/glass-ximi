@@ -32,7 +32,12 @@ for unit_path in units:
  assert unit.get('failures')=='0' and unit.get('errors')=='0' and int(unit.get('skipped','0'))==0
  count+=int(unit.get('tests'))
 for name,digest in json.loads((root/'compatibility/preserved-renderers-0110.json').read_text()).items():
- assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass'/name).read_bytes()).hexdigest()==digest,name
-report.update(icon_renderer_unchanged_from_0110=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
+ if name!='LiquidGlassDrawable.java':assert hashlib.sha256((root/'app/src/main/java/io/github/devarix/kashiglass'/name).read_bytes()).hexdigest()==digest,name
+policy=json.loads((root/'compatibility/widget-live-policy-0180.json').read_text())
+assert policy['original_source_sha256']==json.loads((root/'compatibility/preserved-renderers-0110.json').read_text())['LiquidGlassDrawable.java']
+renderer=(root/'app/src/main/java/io/github/devarix/kashiglass/LiquidGlassDrawable.java').read_text()
+assert hashlib.sha256(renderer.encode()).hexdigest()==policy['updated_source_sha256']
+assert hashlib.sha256(renderer[renderer.index(policy['suffix_start']):].encode()).hexdigest()==policy['render_methods_suffix_sha256']
+report.update(icon_renderer_unchanged_from_0110=False,icon_render_methods_preserved=True,widget_live_policy_override=True,unit_tests=count,physical_device_tested=False,launcher='Kashi V7.5 / HyperOS 3',requires='Root and LSPosed',developer='devarix')
 text=json.dumps(report,indent=2);print(text)
 if len(sys.argv)>2:Path(sys.argv[2]).write_text(text+'\n')

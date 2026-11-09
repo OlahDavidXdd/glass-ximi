@@ -1,0 +1,7 @@
+{
+  "reason": "Widgets explicitly request a live screen backdrop; legacy constructors continue to capture the selected global mode. Rendering methods/parameters are unchanged.",
+  "original_source_sha256": "6ccd9cd192c79084438147dfcbb9916118bbc78f73083f2c28f85296cc6409c4",
+  "updated_source_sha256": "37a3f856a2613e3898674cb07c778eb09e50afdadd7427e365fceae693fac6a7",
+  "render_methods_suffix_sha256": "129d1e2ef6f64566e60ad8e6fab34a057c4eea3f3893e260df2fbe5a34b8fb8e",
+  "suffix_start": "    @Override public void draw(Canvas canvas)"
+}

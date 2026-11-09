@@ -20,6 +20,7 @@ final class MamlWidgetGlass {
     private final Map<Object,Card> roots=Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<View,WeakReference<Object>> hosts=new WeakHashMap<>();
     private final Set<String> diagnostics=new HashSet<>();
+    private final Set<String> renderMessages=new HashSet<>();
     private final Consumer<String> log,changed;
     private final SearchBarBlur.Calls underlayCalls;
     private volatile boolean enabled;
@@ -27,17 +28,18 @@ final class MamlWidgetGlass {
     MamlWidgetGlass(Consumer<String> log,Consumer<String> changed){this(log,changed,null);}
     MamlWidgetGlass(Consumer<String> log,Consumer<String> changed,SearchBarBlur.Calls calls){this.log=log;this.changed=changed;this.underlayCalls=calls;}
     void configure(boolean enabled,boolean blur,int strength,GlassBackdrop backdrop){
-        this.enabled=enabled;this.blur=blur;this.strength=strength;this.backdrop=backdrop;
+        renderMessages.clear();this.enabled=enabled;this.blur=blur;this.strength=strength;this.backdrop=backdrop;
         synchronized(roots){for(Card card:roots.values())if(card.underlay!=null)card.underlay.restore();roots.clear();}for(View host:new ArrayList<>(hosts.keySet()))apply(host);
         changed.accept(summary());
     }
     void apply(View host){
         if(!nativeHost(host))return;
-        Object root=call(host,"getMaMlRoot");
+        Object root=call(host,"getMaMlRoot");if(root==null)root=call(host,"getRoot");
         Card bound=roots.get(root);if(enabled&&bound!=null&&bound.host.get()==host)return;
         Object info=call(host,"getItemInfo");
         if(info==null&&host.getParent() instanceof View){info=call(host.getParent(),"getItemInfo");if(info==null)info=((View)host.getParent()).getTag();}
         String descriptor=metadata(info);
+        View ancestor=host;for(int depth=0;ancestor!=null&&depth<6;depth++){descriptor+=" "+ancestor.getClass().getName()+" "+metadata(call(ancestor,"getItemInfo"))+" "+metadata(ancestor.getTag());ancestor=ancestor.getParent() instanceof View?(View)ancestor.getParent():null;}
         if(descriptor.isEmpty())descriptor=metadata(host.getTag());
         String label=String.valueOf(field(info,"title"));
         Object previous=hosts.get(host)==null?null:hosts.get(host).get();
@@ -54,7 +56,7 @@ final class MamlWidgetGlass {
         Object previous=hosts.get(host)==null?null:hosts.get(host).get();if(previous!=null&&previous!=root)remove(previous);
         hosts.put(host,new WeakReference<>(root));
         Card current=roots.get(root);if(current!=null&&current.host.get()==host)return;
-        Drawable glass=SharedGlassMaterial.create(host,backdrop,blur,strength,log,GlassSurface.WIDGET);
+        Drawable glass=SharedGlassMaterial.create(host,backdrop,blur,strength,this::renderStatus,GlassSurface.WIDGET);
         Card card=new Card(host,glass);
         if(underlayCalls!=null){View body=host instanceof android.view.ViewGroup&&((android.view.ViewGroup)host).getChildCount()>0?((android.view.ViewGroup)host).getChildAt(0):host;card.underlay=new SearchBarBlur(body,host,underlayCalls,log,"WIDGET");card.underlay.useSharedMaterial(true);}
         roots.put(root,card);host.invalidate();changed.accept(summary());
@@ -94,7 +96,8 @@ final class MamlWidgetGlass {
     }
     private void remove(Object root){Card removed=roots.remove(root);if(removed!=null&&removed.underlay!=null)removed.underlay.restore();}
     String summary(){int bound=0,rendered=0,removed=0;synchronized(roots){for(Card card:roots.values())if(card.host.get()!=null){bound++;if(card.drawn)rendered++;removed+=card.removed;}}return bound+" MAML clock/weather bound, "+rendered+" rendered, "+removed+" background layers replaced";}
-    private static boolean nativeHost(View host){for(Class<?> type=host.getClass();type!=null;type=type.getSuperclass())if(type.getName().equals("com.miui.home.launcher.maml.MaMlHostView"))return true;return false;}
+    private static boolean nativeHost(View host){for(Class<?> type=host.getClass();type!=null;type=type.getSuperclass())if(type.getName().equals("com.miui.home.launcher.maml.MaMlHostView")||type.getName().equals("com.miui.maml.MiAdvancedView"))return true;return false;}
+    private void renderStatus(String message){if(renderMessages.size()<32&&renderMessages.add(message))log.accept(message);}
     private static String metadata(Object info){if(info==null)return "";StringBuilder out=new StringBuilder();for(String name:new String[]{"appPackage","resPath","maMlTag","maMlTagCategory","type","title"}){Object value=field(info,name);if(value!=null)out.append(name).append('=').append(value).append(' ');}Object path=call(info,"getResPath");if(path!=null)out.append(path);return out.toString();}
     private static String string(Object value){return value==null?"":String.valueOf(value);}
     private static float number(Object value){return value instanceof Number?((Number)value).floatValue():0;}

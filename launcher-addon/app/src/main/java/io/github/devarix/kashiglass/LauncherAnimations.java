@@ -11,18 +11,35 @@ final class LauncherAnimations {
     private final BooleanSupplier enabled;
     private final Function<Object,Bitmap> snapshots;
     private final Consumer<String> log;
+    private final Consumer<Object> returned;
     private Class<?> widgetTarget,folderTarget;
-    LauncherAnimations(BooleanSupplier enabled,Function<Object,Bitmap> snapshots,Consumer<String> log){this.enabled=enabled;this.snapshots=snapshots;this.log=log;}
+    LauncherAnimations(BooleanSupplier enabled,Function<Object,Bitmap> snapshots,Consumer<String> log,Consumer<Object> returned){this.enabled=enabled;this.snapshots=snapshots;this.log=log;this.returned=returned;}
     void install(ClassLoader loader){
         widgetTarget=XposedHelpers.findClassIfExists("com.miui.home.launcher.anim.WidgetTypeAnimTarget",loader);
         folderTarget=XposedHelpers.findClassIfExists("com.miui.home.folder.api.IFolderPreviewIconView",loader);
         for(String name:AnimationPolicy.TARGETS){
             Class<?> type=XposedHelpers.findClassIfExists(name,loader);if(type==null){log.accept("Target absent: "+name);continue;}
-            for(Method method:type.getDeclaredMethods()){install(method,method.getParameterTypes());preserveAlpha(method);refreshLayers(method);}
+            for(Method method:type.getDeclaredMethods()){install(method,method.getParameterTypes());preserveAlpha(method);refreshLayers(method);watchCompletion(method);}
             for(Constructor<?> constructor:type.getDeclaredConstructors())install(constructor,constructor.getParameterTypes());
         }
         Class<?> helper=XposedHelpers.findClassIfExists("com.miui.home.recents.views.FloatingIconUtils$Companion",loader);
         if(helper!=null)for(Method method:helper.getDeclaredMethods())preserveAlpha(method);
+    }
+    private Object sourceTarget(Object receiver){
+        if(receiver==null)return null;
+        try{Object ref=XposedHelpers.getObjectField(receiver,"mAnimTargetRef");Object target=ref instanceof java.lang.ref.Reference?((java.lang.ref.Reference<?>)ref).get():null;if(target!=null)return target;}catch(Throwable ignored){}
+        Object ref=XposedHelpers.getAdditionalInstanceField(receiver,"devarix_animation_source");return ref instanceof java.lang.ref.Reference?((java.lang.ref.Reference<?>)ref).get():null;
+    }
+    private void watchCompletion(Method method){
+        if(Modifier.isStatic(method.getModifiers())||!java.util.Set.of("onAnimationEnd","onAnimationCancel","finishImmediately","release","releaseSync","resetMember").contains(method.getName()))return;
+        try{XposedBridge.hookMethod(method,new XC_MethodHook(){
+            @Override protected void beforeHookedMethod(MethodHookParam p){if(enabled.getAsBoolean())p.setObjectExtra("devarix_return",sourceTarget(p.thisObject));}
+            @Override protected void afterHookedMethod(MethodHookParam p){
+                if(!enabled.getAsBoolean())return;Object source=p.getObjectExtra("devarix_return");
+                if(source==null||(widgetTarget!=null&&widgetTarget.isInstance(source))||(folderTarget!=null&&folderTarget.isInstance(source)))return;
+                try{returned.accept(source);log.accept("Source completion callback: "+method.getDeclaringClass().getSimpleName()+"."+method.getName());}catch(Throwable error){log.accept("Source completion error: "+error);}
+            }
+        });}catch(Throwable error){log.accept("Completion hook error: "+error);}
     }
     private void refreshLayers(Method method){
         String type=method.getDeclaringClass().getSimpleName();
@@ -55,6 +72,7 @@ final class LauncherAnimations {
                 if(!enabled.getAsBoolean())return;
                 try{
                     Object target=p.args[index-1];
+                    if(p.thisObject!=null&&target!=null)XposedHelpers.setAdditionalInstanceField(p.thisObject,"devarix_animation_source",new java.lang.ref.WeakReference<>(target));
                     if((widgetTarget!=null&&widgetTarget.isInstance(target))||(folderTarget!=null&&folderTarget.isInstance(target)))return;
                     OwnedTransitionDrawable fresh=AnimationArtwork.fresh(target,target instanceof View?((View)target).getResources():null,snapshots);
                     if(fresh==null){log.accept("Animation snapshot missing: "+member.getDeclaringClass().getSimpleName()+"."+member.getName());return;}

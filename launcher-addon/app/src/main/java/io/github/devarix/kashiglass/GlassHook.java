@@ -78,7 +78,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         surfaces.install(param.classLoader);
         widgets=new LauncherWidgets(GlassHook::widgetReport,message->debug("WIDGET",message));
         try{widgets.install(param.classLoader);}catch(Throwable e){error("WIDGET_HOOK_ERROR",e);}
-        new LauncherAnimations(()->enabled&&!INTERNAL.get(),GlassHook::animationSnapshot,message->debug("ANIMATION",message)).install(param.classLoader);
+        new LauncherAnimations(()->enabled&&!INTERNAL.get(),GlassHook::animationSnapshot,message->debug("ANIMATION",message),GlassHook::returnedSource).install(param.classLoader);
         XposedHelpers.findAndHookMethod(Application.class,"attach",Context.class,new XC_MethodHook(){
             @Override protected void afterHookedMethod(MethodHookParam p){if(context==null){context=((Context)p.args[0]).getApplicationContext();if(context==null)context=(Context)p.args[0];try{initialize();}catch(Throwable e){error("INITIALIZE_ERROR",e);}}}
         });
@@ -274,16 +274,27 @@ public final class GlassHook implements IXposedHookLoadPackage {
         nextWarmAt=Math.max(SystemClock.uptimeMillis()+32,nextWarmAt+24);
         MAIN.postAtTime(()->{WARMING.remove(key);View current=reference.get();if(enabled&&current!=null&&current.isAttachedToWindow()&&pkg.equals(resolve(current)))transition(current);},nextWarmAt);
     }
-    private static Bitmap animationSnapshot(Object target){
-        return AnimationTargetResolver.find(target,GlassHook::snapshotForTarget,node->{
-            ArrayList<Object> links=new ArrayList<>();
-            for(String method:new String[]{"getAnimTargetContainerView","getTargetRootView","getMBuddyInfo","getShortcutInfo","getItemInfo"})links.add(call(node,method));
-            for(String name:new String[]{"mAnimTargetRef","mLaunchAppAndBackHomeAnimTargetRef","mInfo","mItemInfo","mShortcutInfo"}){
-                Object value=field(node,name);links.add(value instanceof java.lang.ref.Reference?((java.lang.ref.Reference<?>)value).get():value);
-            }
-            return links;
-        });
+    private static void returnedSource(Object target){
+        if(Looper.myLooper()!=Looper.getMainLooper()){MAIN.post(()->returnedSource(target));return;}
+        if(!enabled)return;
+        View source=AnimationTargetResolver.find(target,node->isIcon(node)?(View)node:null,GlassHook::targetLinks);
+        if(source==null){debug("RETURN_STATE","No icon view resolved from "+target.getClass().getName());return;}
+        int refreshed=ReturnSourceRefresh.matching(source,new ArrayList<>(STATES.keySet()),GlassHook::resolve,GlassHook::apply);returnState(source,"completion refreshed="+refreshed);
+        WeakReference<View> ref=new WeakReference<>(source);android.view.Choreographer.getInstance().postFrameCallback(time->{View view=ref.get();if(enabled&&view!=null&&view.isAttachedToWindow()){ReturnSourceRefresh.matching(view,new ArrayList<>(STATES.keySet()),GlassHook::resolve,GlassHook::apply);returnState(view,"next frame");}});
     }
+    private static void returnState(View source,String phase){
+        State state=state(source);Drawable field=getIconDrawable(source),slot=source instanceof android.widget.TextView?((android.widget.TextView)source).getCompoundDrawables()[1]:field;
+        debug("RETURN_STATE",phase+" build="+BuildConfig.VERSION_NAME+" key="+resolve(source)+" field_owned="+state.binding.owns(field)+" slot_owned="+state.binding.owns(slot)+" hidden="+state.visibility.hidden+" alpha="+state.visibility.alpha+" view_alpha="+source.getAlpha()+" visibility="+source.getVisibility()+" layer="+source.getLayerType()+" shown="+source.isShown()+" attached="+source.isAttachedToWindow());
+    }
+    private static ArrayList<Object> targetLinks(Object node){
+        ArrayList<Object> links=new ArrayList<>();
+        for(String method:new String[]{"getAnimTargetContainerView","getTargetRootView","getShortcutIcon","getMBuddyInfo","getShortcutInfo","getItemInfo"})links.add(call(node,method));
+        for(String name:new String[]{"mAnimTargetRef","mLaunchAppAndBackHomeAnimTargetRef","mInfo","mItemInfo","mShortcutInfo"}){Object value=field(node,name);links.add(value instanceof java.lang.ref.Reference?((java.lang.ref.Reference<?>)value).get():value);}return links;
+    }
+    private static Bitmap animationSnapshot(Object target){
+        return AnimationTargetResolver.find(target,GlassHook::snapshotForTarget,GlassHook::targetLinks);
+    }
+
     private static Bitmap snapshotForTarget(Object target){
         if(target instanceof View){
             if(!isIcon(target))return null;View view=(View)target;

@@ -1,3 +1,13 @@
+# 0.18.0: compact page geometry, live widgets and cleanup diagnostics
+
+PagePillLayout measures the existing Search sibling, including a hidden sibling, and copies its preferred box/gravity/margins into an independent page layout-params object. Native params are restored on disable and native content/visibility remain intact. Real Android layout tests verify both physical bounds and restoration.
+
+Widgets select live screen matching explicitly; legacy icon/search constructors retain the user's global mode. `widget-live-policy-0180.json` pins the original/new source and unchanged complete rendering-method suffix. The renderer's constructor/field policy intentionally changes its whole-file hash; validation now reports that distinction explicitly. No widget wallpaper-texture fallback is used in the live path. Actual Xiaomi backdrop pixels remain unverified.
+
+Clock coverage includes verified MiAdvancedView roots and separate Android custom-canvas backgrounds without replacing native foreground/time data. Unknown flattened image content remains untouched. MAML render-status repetition is bounded/deduplicated.
+
+Animation inputs in the phone log were styled, but final source state was absent. Completion callbacks capture the source before native reset, reconcile matching representations and flush source/parent display lists immediately and on the following frame. `RETURN_STATE` reports final source ownership/alpha/layer state; visibility is never forced. Host tests cover matching representations, cache invalidation and preserved hide/alpha. Real hook dispatch and the remaining physical-device stock flash are not verified.
+
 # 0.17.0: page pill and live drawer material
 
 Kashi's native page dots use LauncherIndicator.mScreenIndicator separately from CapsuleIndicator's Search body. PageIndicatorGlass decorates only that view's background, shares the approved material/underlay helper and retains all dot children and native visibility/actions. Native target/style replacement, disable and detach restore original backgrounds/tints/modes.

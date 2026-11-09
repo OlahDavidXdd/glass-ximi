@@ -51,6 +51,11 @@ public class MamlWidgetRuntimeTest {
         assertEquals(0,(int)modes.get("MiBackgroundBlurMode"));assertEquals(0,(int)modes.get("MiViewBlurMode"));assertTrue(messages.stream().anyMatch(m->m.startsWith("WIDGET_MATERIAL")));
         material.configure(false,false,24,null);assertEquals(2,(int)modes.get("MiBackgroundBlurMode"));assertEquals(3,(int)modes.get("MiViewBlurMode"));controller.pause().stop().destroy();
     }
+    static class ClockGadget extends android.widget.FrameLayout {ClockGadget(android.content.Context context){super(context);}}
+    @Test public void legacyClockGadgetUsesItsVerifiedMiAdvancedRoot(){
+        ClockGadget parent=new ClockGadget(view.getContext());com.miui.maml.MiAdvancedView legacy=new com.miui.maml.MiAdvancedView(view.getContext());legacy.root=root;parent.addView(legacy);
+        MamlWidgetGlass detected=new MamlWidgetGlass(s->{},s->{});detected.configure(true,true,24,new GlassBackdrop(){public boolean isAvailable(){return false;}public boolean draw(Canvas c,View v,Rect r,int margin){return false;}});detected.apply(legacy);assertTrue(detected.summary().startsWith("1 "));assertTrue(detected.drawBackground(group,canvas));
+    }
     @Test public void glassRendersInsideOnlyTheRegisteredRootBeforeBackgroundRemoval(){
         ImageScreenElement bg=new ImageScreenElement(root);assertFalse(glass.skipDecoration(bg));
         assertFalse(glass.drawBackground(new ElementGroup(root),canvas));assertTrue(glass.drawBackground(group,canvas));assertTrue(glass.skipDecoration(bg));
