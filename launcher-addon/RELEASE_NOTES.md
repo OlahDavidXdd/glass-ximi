@@ -1,3 +1,2 @@
-- Added Kyant glass navigation.
-- Fixed native stock-icon restore paths.
-- Improved clock background handling.
+- Added glass body during swipe-home animations.
+- Added draggable, springing bottom navigation.

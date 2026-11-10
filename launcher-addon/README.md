@@ -2,6 +2,13 @@
 
 Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
+## 0.23.0
+
+- Glass body remains visible in swipe-home snapshots.
+- Bottom navigation supports dragging and spring snapping.
+
+[Download APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.23.0-test). Reboot and refresh the loaded hook version. [Verification details](AUDIT.md).
+
 ## 0.22.0 — Kyant navigation, native restore inputs and clock backgrounds
 
 The floating controller navigation adapts [Kyant0/AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass), pinned at `65ab177e90e5c1d8c62e70cf7755841982da65f6`. Its rounded-rectangle refraction shader is extracted verbatim with its SDF expansion and bundled under Apache-2.0. A Java View/RenderNode adapter uses the demo's 8dp blur / 24dp lens approach; it is not the upstream Compose tab component. Navigation overlays a separate content subtree and samples that live subtree without capturing itself. Software/shader failure uses readable dark glass without claiming blur. Icon artwork and the launcher icon renderer remain unchanged.

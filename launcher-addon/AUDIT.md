@@ -1,3 +1,11 @@
+# 0.23.0: swipe glass body and draggable navigation
+
+The screen-matched icon renderer depends on a compositor backdrop that cannot travel with native animation bitmap snapshots. Its cold snapshot contained a rim and symbol with an empty body. TransitionGlassBody now composites a neutral translucent body beneath that foreground for motion and native callback/model snapshots. Corners remain transparent, native alpha/fades remain intact, and no fixed wallpaper image is introduced. Live home icons, original LiquidGlassDrawable render methods, the QWEA0/Kyant shaders and icon PNGs are unchanged.
+
+LiquidNavigationBar implements drag-to-select with a damped spring, nearest-tab commit on release, cancellation, RTL, pointer-loss handling and reduced-motion support. It uses a single moving Kyant-backed pill behind native accessible buttons. Backdrop nodes refresh with drag and scroll; detach cancels frame callbacks. Page content changes only on release/tap. This adapts the upstream tab interaction approach to Android Views, without claiming to embed the Compose component.
+
+Sixteen new Android cases across API 33/35 cover drag/release/cancel, vertical gesture rejection, RTL/clamping, native button taps, nonempty motion-body pixels, transparent corners, preserved glyphs, neutral channels, fade-to-zero and unavailable artwork. Total: 245 runtime cases and 80 unit tests. Phone appearance and native swipe-home timing still need device confirmation; bitmaps cannot provide a live compositor blur while moving.
+
 # 0.22.0: real inherited restore gap, clock host backgrounds and Kyant adapter
 
 Static Kashi V7.5 inspection confirms `ShortcutIcon.lambda$new$5` invokes the no-argument model getter during delayed restore; ShortcutInfo declares only a contextual overload. Hooking its declared methods missed the inherited getter. InheritedMethods now resolves the actual Method. The native setter passes its input to mImageSetCallback after assigning fields; NativeIconInput replaces that input with independently owned glass pixels before callbacks, while raw originals are captured first for disable restoration. Native clears are retained. Source stop/reset refresh hooks supplement existing floating-layer callbacks.

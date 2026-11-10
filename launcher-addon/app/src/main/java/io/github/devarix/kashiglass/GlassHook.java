@@ -324,6 +324,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         String key=assetKey(pkg);
         // No wallpaper/GPU readback or provider I/O on a transition's critical path.
         Bitmap ready="frosted".equals(style)&&!GlassConfig.automaticKey(pkg)?glyph:LiquidGlassDrawable.coldTransition(glyph);
+        if(screenMatch&&(!"frosted".equals(style)||GlassConfig.automaticKey(pkg))){Bitmap body=TransitionGlassBody.add(ready);if(body!=ready&&ready!=glyph)ready.recycle();ready=body;}
         TRANSITIONS.put(key,ready);debug(screenMatch?"ANIMATION_CACHE_REBUILT":"ANIMATION_STATIC_FALLBACK",key);return ready;
     }
     private static void rememberCurrent(View view,State state){

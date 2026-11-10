@@ -12,7 +12,6 @@ import android.widget.*;
 final class ControllerUi {
     static final int INK=0xfff4f4f6,MUTED=0xffa9abb5,DIM=0xff797d89,BG=0xff000000;
     final Context context;
-    private java.lang.ref.WeakReference<View> navigationScene=new java.lang.ref.WeakReference<>(null);
     ControllerUi(Context context){this.context=context;}
     int dp(float value){return Math.round(value*context.getResources().getDisplayMetrics().density);}
     TextView label(String value,int size,int color,boolean bold){TextView t=new TextView(context);t.setText(value);t.setTextSize(size);t.setTextColor(color);t.setTypeface(Typeface.create(bold?"sans-serif-medium":"sans-serif",Typeface.NORMAL));t.setIncludeFontPadding(false);t.setLineSpacing(dp(3),1);return t;}
@@ -35,8 +34,7 @@ final class ControllerUi {
     private Drawable ripple(Drawable glass){return new RippleDrawable(ColorStateList.valueOf(0x20ffffff),glass,null);}
     Button button(String title,boolean primary){Button b=new Button(context);b.setText(title);b.setTextSize(14);b.setAllCaps(false);b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));b.setTextColor(INK);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setPadding(dp(14),dp(10),dp(14),dp(10));b.setBackground(ripple(glass(b,GlassSurface.SEARCH,primary)));return b;}
     Button action(LinearLayout parent,String title,boolean primary){Button b=button(title,primary);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(8);parent.addView(b,p);return b;}
-    void navigation(Button button,boolean selected){button.setTextColor(selected?INK:MUTED);button.setAlpha(1);button.setBackground(ripple(selected&&navigationScene.get()!=null?new KyantNavigationDrawable(button,navigationScene.get()):new ColorDrawable(Color.TRANSPARENT)));}
-    void navigationSurface(LinearLayout navigation,View scene){navigationScene=new java.lang.ref.WeakReference<>(scene);navigation.setBackground(new KyantNavigationDrawable(navigation,scene));}
+    void navigation(Button button,boolean selected){button.setTextColor(selected?INK:MUTED);button.setAlpha(1);button.setBackground(ripple(new ColorDrawable(Color.TRANSPARENT)));}
     void navigationIcon(Button button,int index){button.setCompoundDrawablesWithIntrinsicBounds(null,new NavigationGlyph(index,dp(20)),null,null);button.setCompoundDrawablePadding(dp(4));}
     private Drawable switchPart(View owner,boolean thumb){
         StateListDrawable states=new StateListDrawable();

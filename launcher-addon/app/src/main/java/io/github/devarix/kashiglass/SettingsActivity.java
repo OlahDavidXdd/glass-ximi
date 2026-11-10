@@ -17,6 +17,7 @@ public final class SettingsActivity extends Activity {
     private Button restartButton;
     private final Runnable restartExpiry=this::updateRestartUi;
     private final Button[] navigation=new Button[3];
+    private LiquidNavigationBar navigationBar;
     private final Handler main=new Handler(Looper.getMainLooper());
     private long checkStarted;
     private boolean checking;
@@ -30,12 +31,13 @@ public final class SettingsActivity extends Activity {
         LinearLayout root=ui.column();root.setBackgroundColor(ControllerUi.BG);FrameLayout frame=new FrameLayout(this);frame.setBackgroundColor(ControllerUi.BG);frame.setFitsSystemWindows(true);frame.addView(root,new FrameLayout.LayoutParams(-1,-1));
         LinearLayout header=ui.row();header.setPadding(dp(20),dp(18),dp(20),dp(12));LinearLayout brand=ui.column();ui.text(brand,"devarix Glass",22,ControllerUi.INK,true);ui.text(brand,"KASHI · HYPEROS",10,ControllerUi.DIM,true);header.addView(brand,new LinearLayout.LayoutParams(0,-2,1));TextView version=ui.label(BuildConfig.VERSION_NAME,12,ControllerUi.MUTED,false);header.addView(version);root.addView(header);
         scroll=new ScrollView(this);scroll.setClipToPadding(false);scroll.setFillViewport(true);body=ui.column();int margin=Math.max(20,(getResources().getConfiguration().screenWidthDp-620)/2);body.setPadding(dp(margin),dp(8),dp(margin),dp(124));scroll.addView(body,new ScrollView.LayoutParams(-1,-2));root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout nav=ui.row();nav.setPadding(dp(12),dp(10),dp(12),dp(10));ui.navigationSurface(nav,root);scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{nav.invalidate();for(Button tab:navigation)if(tab!=null)tab.invalidate();});String[] titles={"Overview","Appearance","Diagnostics"};for(int i=0;i<3;i++){final int tab=i;Button button=ui.button(titles[i],false);button.setTextSize(11);ui.navigationIcon(button,i);button.setTag("tab:"+i);button.setContentDescription(titles[i]);navigation[i]=button;LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-2,1);params.setMargins(dp(3),0,dp(3),0);nav.addView(button,params);button.setOnClickListener(v->renderTab(tab));}FrameLayout.LayoutParams navParams=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);navParams.setMargins(dp(12),dp(4),dp(12),dp(12));frame.addView(nav,navParams);setContentView(frame);
+        LiquidNavigationBar nav=new LiquidNavigationBar(this,root,index->renderTab(index));navigationBar=nav;scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->nav.refreshBackdrop());String[] titles={"Overview","Appearance","Diagnostics"};for(int i=0;i<3;i++){Button button=ui.button(titles[i],false);button.setTextSize(11);ui.navigationIcon(button,i);button.setTag("tab:"+i);button.setContentDescription(titles[i]);navigation[i]=button;nav.addTab(button);}FrameLayout.LayoutParams navParams=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);navParams.setMargins(dp(12),dp(4),dp(12),dp(12));frame.addView(nav,navParams);setContentView(frame);
         getContentResolver().registerContentObserver(android.net.Uri.parse("content://"+GlassConfig.AUTHORITY+"/status"),false,observer);renderTab(state==null?0:state.getInt("tab",0));
     }
     private void renderTab(int tab){
         selectedTab=Math.max(0,Math.min(2,tab));body.removeAllViews();status=restartResult=connectionTitle=connectionDetail=loadedVersion=null;restartButton=null;iconsSwitch=blurSwitch=null;
         for(int i=0;i<3;i++){navigation[i].setSelected(i==selectedTab);ui.navigation(navigation[i],i==selectedTab);}
+        navigationBar.select(selectedTab,navigationBar.isLaidOut());
         if(selectedTab==0)overview();else if(selectedTab==1)appearance();else diagnostics();updateStatus();scroll.scrollTo(0,0);
     }
     private void connectionCard(){
