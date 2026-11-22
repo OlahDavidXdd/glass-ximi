@@ -2,6 +2,12 @@
 
 Experimental LSPosed add-on for **Kashi HyperOS Launcher V7.5 on HyperOS 3**. Adds **Glass icons (devarix)** to the launcher's Icons settings, with two materials and 700 icon/activity mappings.
 
+## 0.24.0 — Independent glass icon switch
+
+Keep **Enable glass** on, then turn **Appearance → Glass icons** off to use native icons while retaining the other selected glass surfaces and widgets. Icon animation replacements also stop. Existing settings keep icon effects on by default.
+
+[Download APK and source](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.24.0-test). Reboot after updating to load the new hook.
+
 ## 0.23.0
 
 - Glass body remains visible in swipe-home snapshots.

@@ -35,4 +35,13 @@ public class ControllerRuntimeTest {
     @Test public void enableActionKeepsChosenMaterialAndDefaultsBlurOnlyOnFirstUse(){activity.getSharedPreferences(GlassConfig.PREFS,0).edit().putString("style","frosted").remove("blur").commit();assertTrue(tag("action:enable").performClick());assertEquals("frosted",activity.getSharedPreferences(GlassConfig.PREFS,0).getString("style",""));assertTrue(activity.getSharedPreferences(GlassConfig.PREFS,0).getBoolean("blur",false));}
     @Test public void masterSwitchPreservesExplicitlyDisabledBlur(){activity.getSharedPreferences(GlassConfig.PREFS,0).edit().putBoolean("blur",false).commit();tab(1);((Switch)tag("control:icons")).performClick();assertFalse(activity.getSharedPreferences(GlassConfig.PREFS,0).getBoolean("blur",true));}
 
+    @Test public void glassIconsCanBeDisabledWithoutChangingMasterOrSurfaces(){
+        activity.getSharedPreferences(GlassConfig.PREFS,0).edit().putBoolean("icons",true).putBoolean("blur",true).commit();
+        tab(1);Switch icons=(Switch)tag("control:icon_effects");assertTrue(icons.isChecked());icons.performClick();
+        android.content.SharedPreferences prefs=activity.getSharedPreferences(GlassConfig.PREFS,0);
+        assertFalse(prefs.getBoolean("icon_effects",true));assertTrue(prefs.getBoolean("icons",false));assertTrue(prefs.getBoolean("blur",false));
+        for(String surface:new String[]{"dock_glass","search_glass","drawer_glass","widget_glass"})assertTrue(((Switch)tag("control:"+surface)).isChecked());
+        controller.recreate();activity=controller.get();assertFalse(((Switch)tag("control:icon_effects")).isChecked());
+    }
+
 }

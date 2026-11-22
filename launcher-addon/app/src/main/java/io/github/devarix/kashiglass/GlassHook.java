@@ -44,7 +44,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static final ThreadLocal<Boolean> INTERNAL=ThreadLocal.withInitial(()->false);
     private static Context context;
     private static WeakReference<Activity> lastActivity=new WeakReference<>(null);
-    private static volatile boolean enabled=false,blur=false,automatic=true,whiteSymbols=true,screenMatch=true;
+    private static volatile boolean masterEnabled=false,enabled=false,blur=false,automatic=true,whiteSymbols=true,screenMatch=true;
     private static int radius=24;
     private static volatile String style="liquid";
     private static WallpaperBackdrop wallpaper;
@@ -53,7 +53,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
     private static volatile boolean selfRestartReady;
     private static boolean settingsLoaded;
     private static volatile String renderConfiguration;
-    private static final Runnable RESUME_WORK=()->{Activity activity=lastActivity.get();if(activity!=null&&!activity.isFinishing()&&!activity.isDestroyed()&&activity.hasWindowFocus()&&enabled)scan(activity.getWindow().getDecorView());};
+    private static final Runnable RESUME_WORK=()->{Activity activity=lastActivity.get();if(activity!=null&&!activity.isFinishing()&&!activity.isDestroyed()&&activity.hasWindowFocus()&&masterEnabled)scan(activity.getWindow().getDecorView());};
     private static volatile Set<String> packages=Collections.emptySet();
     private static String lastStatus="",lastBindings="";
     private static final class Artwork {final String key;final Bitmap glyph;Artwork(String key,Bitmap glyph){this.key=key;this.glyph=glyph;}}
@@ -248,7 +248,7 @@ public final class GlassHook implements IXposedHookLoadPackage {
         CONTROL_IO.execute(()->{try{Bundle data=new Bundle();data.putString("bindings",value);context.getContentResolver().call(GlassProvider.SETTINGS,"diagnostics",null,data);}catch(Throwable e){error("DIAGNOSTICS_ERROR",e);}});
     }
     private static void walk(View view){
-        if(!enabled)return;
+        if(!masterEnabled)return;
         if(surfaces!=null)surfaces.apply(view);
         if(widgets!=null)widgets.apply(view);
         if(isIcon(view))apply(view);
@@ -363,12 +363,12 @@ public final class GlassHook implements IXposedHookLoadPackage {
                 if(config==null)throw new IllegalStateException("Provider unavailable");
                 debugEnabled=config.getBoolean("debug_logs",true);
                 debug("CONFIG","Settings received; style="+config.getString("style")+" icons="+config.getBoolean("icons")+" blur="+config.getBoolean("blur")+" screen_match="+config.getBoolean("screen_match",true)+" search="+config.getBoolean("search_glass",true)+" loaded="+BuildConfig.VERSION_NAME+" mappings="+(config.getStringArrayList("packages")==null?0:config.getStringArrayList("packages").size()));
-                boolean nextEnabled=config.getBoolean("icons"),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
+                boolean nextMaster=config.getBoolean("icons"),nextEnabled=nextMaster&&config.getBoolean("icon_effects",true),nextBlur=config.getBoolean("blur"),nextAutomatic=config.getBoolean("automatic",true);int nextRadius=GlassConfig.radius(config.getInt("radius",24));
                 boolean nextWhite=config.getBoolean("white_symbols",true),nextScreen=config.getBoolean("screen_match",true);
                 boolean nextDock=config.getBoolean("dock_glass",true),nextSearch=config.getBoolean("search_glass",true),nextDrawer=config.getBoolean("drawer_glass",true),nextWidgets=config.getBoolean("widget_glass",true);
                 String nextStyle=GlassConfig.style(config.getString("style"));boolean root=config.getBoolean("root_wallpaper");String shader=config.getString("shader");
                 // Identity/log checks may repeat; unchanged settings must not rebuild every surface mid-animation.
-                String configuration=nextStyle+":"+nextEnabled+":"+nextBlur+":"+nextAutomatic+":"+nextRadius+":"+nextWhite+":"+nextScreen+":"+nextDock+":"+nextSearch+":"+nextDrawer+":"+nextWidgets+":"+root;
+                String configuration=nextStyle+":"+nextMaster+":"+nextEnabled+":"+nextBlur+":"+nextAutomatic+":"+nextRadius+":"+nextWhite+":"+nextScreen+":"+nextDock+":"+nextSearch+":"+nextDrawer+":"+nextWidgets+":"+root;
                 Bitmap plate;try(var stream=context.getContentResolver().openInputStream(Uri.parse("content://"+GlassConfig.AUTHORITY+"/plate"))){plate=BitmapFactory.decodeStream(stream);}
                 ArrayList<String> names=config.getStringArrayList("packages");Set<String> nextPackages=names==null?Collections.emptySet():new HashSet<>(names);
                 MAIN.post(()->{
@@ -384,13 +384,13 @@ public final class GlassHook implements IXposedHookLoadPackage {
                         state.visibility.observe(hidden,nativeDrawable==null?255:nativeDrawable.getAlpha());
                     }
                     renderConfiguration=configuration;settingsLoaded=true;
-                    enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;whiteSymbols=nextWhite;screenMatch=nextScreen;packages=nextPackages;FAILED.clear();
-                    LiquidGlassDrawable.configure(shader,plate,whiteSymbols,screenMatch);wallpaper.configure(enabled&&!screenMatch&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
-                    if(surfaces!=null)surfaces.configure(enabled,nextDock,nextSearch,nextDrawer,blur,radius,wallpaper);
-                    if(widgets!=null)widgets.configure(enabled&&nextWidgets,blur,radius,wallpaper);
+                    masterEnabled=nextMaster;enabled=nextEnabled;blur=nextBlur;radius=nextRadius;style=nextStyle;automatic=nextAutomatic;whiteSymbols=nextWhite;screenMatch=nextScreen;packages=nextPackages;FAILED.clear();
+                    LiquidGlassDrawable.configure(shader,plate,whiteSymbols,screenMatch);wallpaper.configure(nextMaster&&!screenMatch&&("liquid".equals(style)||nextDock||nextSearch||nextDrawer),root);
+                    if(surfaces!=null)surfaces.configure(nextMaster,nextDock,nextSearch,nextDrawer,blur,radius,wallpaper);
+                    if(widgets!=null)widgets.configure(nextMaster&&nextWidgets,blur,radius,wallpaper);
                     report(enabled?"Selected "+style+" material. Waiting for mapped icons to bind.":"Launcher connected. Glass icons are disabled.");
                     for(View v:new ArrayList<>(STATES.keySet()))if(v!=null){State state=state(v);state.resolveCached=false;state.blurFailed=false;apply(v);}
-                    Activity activity=lastActivity.get();if(enabled&&activity!=null)scan(activity.getWindow().getDecorView());
+                    Activity activity=lastActivity.get();if(masterEnabled&&activity!=null)scan(activity.getWindow().getDecorView());
                 });
             }catch(Throwable e){error("CONFIG_ERROR_KEEPING_LAST_SETTINGS",e);}
         });

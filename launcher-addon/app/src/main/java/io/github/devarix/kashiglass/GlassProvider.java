@@ -49,6 +49,7 @@ public final class GlassProvider extends ContentProvider {
             result.putBoolean("root_wallpaper",prefs.getBoolean("root_wallpaper",false));
             try(var stream=getContext().getAssets().open("shaders/qwea0_lens.agsl")){result.putString("shader",new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}catch(IOException e){result.putString("error",e.toString());}
             result.putBoolean("icons", prefs.getBoolean("icons", false));
+            result.putBoolean("icon_effects", prefs.getBoolean("icon_effects", true));
             result.putBoolean("blur", prefs.getBoolean("blur", false));
             result.putInt("radius", GlassConfig.radius(prefs.getInt("radius", GlassConfig.DEFAULT_RADIUS_DP)));
             try { ArrayList<String> names=new ArrayList<>(); for (String n:getContext().getAssets().list(GlassConfig.assetDirectory(style))) if(n.endsWith(".png"))names.add(n.substring(0,n.length()-4)); result.putStringArrayList("packages",names); }

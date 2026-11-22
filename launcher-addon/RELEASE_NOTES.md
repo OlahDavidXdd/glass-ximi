@@ -1,2 +1,4 @@
-- Added glass body during swipe-home animations.
-- Added draggable, springing bottom navigation.
+- Added **Appearance → Glass icons**. Turn it off to restore native launcher icons while keeping dock, search/page pill, drawer, clock/weather and controller glass enabled.
+- The existing **Enable glass** master switch still controls the whole add-on. Existing installations retain their icon effects by default.
+- Icon animation replacement and automatic icon generation stop when Glass icons is off; cached transitions are cleared and bound icons restored.
+- Install the APK, reboot to load hook **0.24.0-test**, then leave Enable glass on and turn Glass icons off. Physical HyperOS appearance still requires a device check.

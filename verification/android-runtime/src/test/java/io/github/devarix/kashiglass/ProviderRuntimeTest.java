@@ -28,4 +28,10 @@ public class ProviderRuntimeTest {
     private String request(){ShadowBinder.setCallingUid(own);prefs.edit().putInt("hook_pid",2222).putString("hook_capabilities",HookVersion.RESTART_CAPABILITY).commit();return provider.call("request_restart",null,null).getString("token");}
     @Test public void spoofedPidCannotConsumeAnotherProcessesRestart(){request();ShadowBinder.setCallingUid(launcher);ShadowBinder.setCallingPid(3333);Bundle spoof=new Bundle();spoof.putInt("pid",2222);assertNull(provider.call("consume_restart",null,spoof).getString("token"));assertNotNull(prefs.getString("restart_token",null));}
     @Test public void actualConnectedPidCanConsumeOnlyOnce(){String token=request();ShadowBinder.setCallingUid(launcher);ShadowBinder.setCallingPid(2222);Bundle ignored=new Bundle();ignored.putInt("pid",3333);assertEquals(token,provider.call("consume_restart",null,ignored).getString("token"));assertNull(provider.call("consume_restart",null,ignored).getString("token"));}
+    @Test public void iconEffectsDefaultOnAndTransmitIndependentlyOfMaster(){
+        assertTrue(provider.call("settings",null,null).getBoolean("icon_effects"));
+        prefs.edit().putBoolean("icons",true).putBoolean("icon_effects",false).putBoolean("blur",true).commit();
+        Bundle result=provider.call("settings",null,null);assertTrue(result.getBoolean("icons"));assertFalse(result.getBoolean("icon_effects"));assertTrue(result.getBoolean("blur"));
+    }
+
 }
