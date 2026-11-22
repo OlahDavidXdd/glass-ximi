@@ -10,10 +10,10 @@ if len(sys.argv)==1:
 else:
     cases=[]
     for file in (root/'provider-baseline-build/test-results/test').glob('TEST-*.xml'):cases.extend(ET.parse(file).getroot().findall('testcase'))
-    assert len(cases)==10,len(cases)
+    assert len(cases)==12,len(cases)
     failures=[c.get('name') for c in cases if c.find('failure') is not None or c.find('error') is not None]
-    expected=['reportedPidComesFromBinderNotUntrustedExtras','uiReadDoesNotPretendLauncherConnected','spoofedPidCannotConsumeAnotherProcessesRestart','actualConnectedPidCanConsumeOnlyOnce']
-    assert len(failures)==8,failures
+    expected=['iconEffectsDefaultOnAndTransmitIndependentlyOfMaster','reportedPidComesFromBinderNotUntrustedExtras','uiReadDoesNotPretendLauncherConnected','spoofedPidCannotConsumeAnotherProcessesRestart','actualConnectedPidCanConsumeOnlyOnce']
+    assert len(failures)==10,failures
     assert all(any(e in name for e in expected) for name in failures),failures
-    result={'expected_failures_reproduced':True,'android_apis':[33,35],'tests':10,'expected_failures':8,'failure_names':failures,'fixture':json.loads((root/'fixtures/provider-provenance.json').read_text())}
+    result={'expected_failures_reproduced':True,'android_apis':[33,35],'tests':12,'expected_failures':10,'failure_names':failures,'fixture':json.loads((root/'fixtures/provider-provenance.json').read_text())}
     (root/'results/provider-baseline-verification.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))

@@ -9,7 +9,7 @@ cases=[]
 for file in reports:
  for case in ET.parse(file).getroot().findall('testcase'):
   cases.append({'class':case.get('classname'),'name':case.get('name'),'passed':case.find('failure') is None and case.find('error') is None and case.find('skipped') is None})
-assert len(cases)==245,(len(cases),cases)
+assert len(cases)==249,(len(cases),cases)
 assert all(c['passed'] for c in cases),cases
 production=root.parents[1]/'launcher-addon/app/src/main/java/io/github/devarix/kashiglass'
 release=json.loads((root/'fixtures/current-release-provenance.json').read_text())
@@ -38,13 +38,13 @@ assert len(result['native_canvas_outputs'])==2,'Missing native Canvas output'
 (root/'results').mkdir(exist_ok=True)
 (root/'results/SUMMARY.md').write_text('''# Phone-free Android runtime verification
 
-- **245 / 245 current-code tests passed** on Android APIs 33 and 35, including native graphics, widget restoration and provider protocol cases.
+- **249 / 249 current-code tests passed** on Android APIs 33 and 35, including native graphics, widget restoration and provider protocol cases.
 - **4 expected failures reproduced** in released 0.9.0 source: shared Frosted pixels and cloning after recycled native pixels, on both APIs.
 - Icon rendering methods are preserved; widget live-mode selection intentionally changes constructor/field source.
 - Full renderer source reference matches (widget constructor policy intentionally changed): **'''+str(result['visual_renderer_reference_match'])+'''**.
 - Native MAML selection/binding/material drawing uses fixtures for verified native getters/fields; the real MAML engine and Xposed callbacks are not executed.
 - New search tests record/reject the native-call boundary to verify routing and restoration; they do not emulate Xiaomi blur pixels.
-- **8 provider protocol failures reproduced** with the released 0.11.0 provider, across APIs 33/35; the current provider passes.
+- **10 provider protocol/icon-setting failures reproduced** with the released 0.11.0 provider, across APIs 33/35; the current provider passes.
 - Native Canvas PNGs and XML/HTML test reports are attached in the workflow artifact.
 
 This executes production Java classes in Robolectric's native-graphics Android test runtime. It does not boot HyperOS or execute Kashi/LSPosed hooks. Xiaomi native blur, end-to-end gestures, source hiding inside Kashi and frame pacing are **not verified**. This verification workflow does not rebuild or replace APK releases.
