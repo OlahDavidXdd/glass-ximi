@@ -1,4 +1,4 @@
-**Latest launcher test:** [0.23.0 APK, source and screenshots](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.23.0-test) · Glass motion snapshots and draggable, springing Kyant navigation. [Build audit](launcher-addon/AUDIT.md) · [Signing/update limits](launcher-addon/SIGNING.md). Restart/reboot and refresh the loaded hook version.
+**Latest launcher test:** [0.24.0 APK, source and screenshots](https://github.com/OlahDavidXdd/glass-ximi/releases/tag/kashi-glass-addon-v0.24.0-test) · Independent **Glass icons** switch: keep **Enable glass** on and turn **Appearance → Glass icons** off for native icons with the other glass features retained. [Build audit](launcher-addon/AUDIT.md) · [Signing/update limits](launcher-addon/SIGNING.md). Restart/reboot and refresh the loaded hook version.
 
 **Phone-free verification:** [Android native-graphics test suite](verification/android-runtime) · [Run/results](https://github.com/OlahDavidXdd/glass-ximi/actions/workflows/verify-android-runtime.yml). Verifies snapshot pixel ownership, transparency and fades on API 33/35; HyperOS/LSPosed end-to-end animations remain outside this host runtime.
 
